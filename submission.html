@@ -1,0 +1,150 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CTIS 2026 Submission Portal</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="hero-shell">
+    <div class="brand-bar panel">
+      <img class="brand-bar__logo" src="./vision-empower-logo.svg" alt="Vision Empower Trust logo">
+      <div class="brand-bar__text">
+        <p class="eyebrow">Hosted by Vision Empower Trust</p>
+        <p class="brand-bar__caption">Teacher submission portal</p>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="hero__copy">
+        <p class="eyebrow">Computational Thinking in Schools 2026</p>
+        <h1>Submission portal</h1>
+        <p class="hero__text">
+          Teachers can submit abstracts here.
+        </p>
+      </div>
+      <div class="hero__meta">
+        <div class="stat">
+          <span class="stat__label">Submissions</span>
+          <strong class="stat__value" id="submission-count">0</strong>
+        </div>
+      </div>
+    </section>
+  </header>
+
+  <main id="main-content" class="layout">
+
+    <section class="split">
+      <article class="panel">
+        <div class="panel__heading">
+          <h2>New submission</h2>
+          <span class="pill">Teacher entry</span>
+        </div>
+        <form id="submission-form" class="form stack">
+          <div class="field-grid">
+            <label>
+              Abstract title
+              <input name="title" type="text" required>
+            </label>
+            <label>
+              Teacher author(s)
+              <input name="authors" type="text" placeholder="Author 1, Author 2" required>
+            </label>
+            <label>
+              School affiliation
+              <input name="schoolName" type="text" required>
+            </label>
+            <label>
+              School address
+              <input name="schoolAddress" type="text" required>
+            </label>
+            <label>
+              Contact email(s)
+              <input name="emails" type="text" placeholder="teacher@school.org" required>
+            </label>
+            <label>
+              CT implementation start year
+              <input name="implementationStart" type="text" placeholder="2023">
+            </label>
+            <label>
+              Weekly CT periods
+              <input name="weeklyPeriods" type="number" min="0" step="1">
+            </label>
+            <label>
+              Teachers involved
+              <input name="teacherCount" type="number" min="1" step="1">
+            </label>
+            <label>
+              Student count
+              <input name="studentCount" type="number" min="0" step="1">
+            </label>
+            <label>
+              Grades served
+              <input name="grades" type="text" placeholder="3 to 8">
+            </label>
+            <label>
+              Gender ratio
+              <input name="genderRatio" type="text" placeholder="52% girls, 48% boys">
+            </label>
+            <label>
+              Video or evidence link
+              <input name="evidenceLink" type="url" placeholder="https://">
+            </label>
+          </div>
+          <label>
+            Short abstract (about 150 words)
+            <textarea name="shortAbstract" rows="4" required></textarea>
+          </label>
+          <label>
+            Section 1: Background
+            <textarea name="background" rows="5" required></textarea>
+          </label>
+          <label>
+            Section 2: Implementation
+            <textarea name="implementation" rows="5" required></textarea>
+          </label>
+          <label>
+            Challenges
+            <textarea name="challenges" rows="3"></textarea>
+          </label>
+          <label>
+            Section 3: Impact
+            <textarea name="impact" rows="5" required></textarea>
+          </label>
+          <label>
+            Section 4: Conclusion
+            <textarea name="conclusion" rows="3"></textarea>
+          </label>
+          <label>
+            Bibliography or references
+            <textarea name="references" rows="3"></textarea>
+          </label>
+          <div class="button-row">
+            <button class="button" type="submit">Save submission</button>
+            <button class="button button--ghost" type="reset">Clear</button>
+          </div>
+        </form>
+      </article>
+
+      <article class="panel">
+        <div class="panel__heading">
+          <h2>Submitted abstracts</h2>
+          <span class="pill" id="submissions-summary">0 saved</span>
+        </div>
+        <div id="submission-list" class="stack"></div>
+      </article>
+    </section>
+  </main>
+
+  <template id="empty-state-template">
+    <div class="empty-state">
+      <p></p>
+    </div>
+  </template>
+
+  <script src="./shared.js"></script>
+  <script src="./submission-app.js"></script>
+</body>
+</html>

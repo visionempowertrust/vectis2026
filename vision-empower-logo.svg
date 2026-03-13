@@ -1,0 +1,48 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 91" role="img" aria-labelledby="title desc">
+  <title id="title">Vision Empower Trust logo</title>
+  <desc id="desc">Vision Empower Trust wordmark with VE monogram and braille dots.</desc>
+  <rect width="375" height="91" fill="#ffffff"/>
+  <g transform="translate(6 7)">
+    <path d="M1 4h9l15 33 15-33h9L23 62h-6L1 4Z" fill="#4f3a36"/>
+    <path d="M28 28c0-15 11-26 27-26 8 0 15 2 21 7l-5 6c-5-4-10-5-16-5-10 0-17 6-19 16h42c0 2 0 3-1 5H29c1 12 9 19 20 19 8 0 15-3 21-8l4 6c-7 6-16 10-27 10-17 0-29-12-29-30Z" fill="#d9b300"/>
+  </g>
+  <g transform="translate(102 14)" fill="#4f3a36">
+    <text x="0" y="23" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="300" letter-spacing="0.6">vision empower</text>
+    <rect x="0" y="31" width="255" height="2" fill="#4f3a36"/>
+    <g transform="translate(2 46)">
+      <circle cx="0" cy="0" r="2.2"/>
+      <circle cx="0" cy="9" r="2.2"/>
+      <circle cx="11" cy="0" r="2.2"/>
+      <circle cx="11" cy="9" r="2.2"/>
+
+      <circle cx="35" cy="0" r="2.2"/>
+      <circle cx="35" cy="9" r="2.2"/>
+      <circle cx="46" cy="0" r="2.2"/>
+
+      <circle cx="69" cy="0" r="2.2"/>
+      <circle cx="69" cy="9" r="2.2"/>
+      <circle cx="80" cy="0" r="2.2"/>
+      <circle cx="80" cy="9" r="2.2"/>
+
+      <circle cx="103" cy="0" r="2.2"/>
+      <circle cx="114" cy="0" r="2.2"/>
+      <circle cx="114" cy="9" r="2.2"/>
+
+      <circle cx="137" cy="0" r="2.2"/>
+      <circle cx="137" cy="9" r="2.2"/>
+      <circle cx="148" cy="0" r="2.2"/>
+      <circle cx="159" cy="9" r="2.2"/>
+
+      <circle cx="183" cy="0" r="2.2"/>
+      <circle cx="183" cy="9" r="2.2"/>
+      <circle cx="194" cy="0" r="2.2"/>
+
+      <circle cx="218" cy="0" r="2.2"/>
+      <circle cx="218" cy="9" r="2.2"/>
+      <circle cx="229" cy="9" r="2.2"/>
+
+      <circle cx="252" cy="0" r="2.2"/>
+      <circle cx="252" cy="9" r="2.2"/>
+    </g>
+  </g>
+</svg>

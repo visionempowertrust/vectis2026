@@ -1,0 +1,237 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CTIS 2026 Review Portal</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="hero-shell">
+    <div class="brand-bar panel">
+      <img class="brand-bar__logo" src="./vision-empower-logo.svg" alt="Vision Empower Trust logo">
+      <div class="brand-bar__text">
+        <p class="eyebrow">Hosted by Vision Empower Trust</p>
+        <p class="brand-bar__caption">Organizer and review portal</p>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="hero__copy">
+        <p class="eyebrow">Computational Thinking in Schools 2026</p>
+        <h1>Review portal</h1>
+        <p class="hero__text">
+          Organizers and reviewers can manage assignments, scoring, comments, and ranked dashboards here without exposing that workflow in the teacher submission page.
+        </p>
+      </div>
+      <div class="hero__meta">
+        <div class="stat">
+          <span class="stat__label">Submissions</span>
+          <strong class="stat__value" id="submission-count">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat__label">Reviewers</span>
+          <strong class="stat__value" id="reviewer-count">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat__label">Completed Reviews</span>
+          <strong class="stat__value" id="review-count">0</strong>
+        </div>
+      </div>
+    </section>
+  </header>
+
+    <section class="dashboard-grid dashboard-grid--review">
+      <article class="panel">
+        <div class="panel__heading">
+          <h2>Ranked papers</h2>
+          <span class="pill" id="rankings-summary">0 ranked</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Title</th>
+                <th>School</th>
+                <th>Score</th>
+                <th>Reviews</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="rankings-body"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel__heading">
+          <h2>Review load</h2>
+          <span class="pill" id="assignment-summary">0 assignments</span>
+        </div>
+        <div id="load-list" class="stack"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel__heading">
+          <h2>Add reviewer</h2>
+          <span class="pill">Program committee</span>
+        </div>
+        <form id="reviewer-form" class="form stack">
+          <div class="field-grid">
+            <label>
+              Reviewer name
+              <input name="name" type="text" required>
+            </label>
+            <label>
+              Email
+              <input name="email" type="email" required>
+            </label>
+            <label>
+              Expertise
+              <input name="expertise" type="text" placeholder="Accessible pedagogy, CT, assessment">
+            </label>
+            <label>
+              Maximum papers
+              <input name="capacity" type="number" min="1" step="1" value="3" required>
+            </label>
+          </div>
+          <button class="button" type="submit">Add reviewer</button>
+        </form>
+      </article>
+
+      <article class="panel">
+        <div class="panel__heading">
+          <h2>Reviewer roster</h2>
+          <span class="pill" id="reviewers-summary">0 active</span>
+        </div>
+        <div id="reviewer-list" class="stack"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel__heading">
+          <h2>Assign reviewers</h2>
+          <span class="pill">Target 2 per paper</span>
+        </div>
+        <form id="assignment-form" class="form stack">
+          <label>
+            Submission
+            <select name="submissionId" id="assignment-submission" required></select>
+          </label>
+          <label>
+            Reviewer
+            <select name="reviewerId" id="assignment-reviewer" required></select>
+          </label>
+          <div class="button-row">
+            <button class="button" type="submit">Assign reviewer</button>
+            <button id="auto-assign" class="button button--secondary" type="button">Auto-assign all gaps</button>
+          </div>
+        </form>
+      </article>
+
+      <article class="panel">
+        <div class="panel__heading">
+          <h2>Assignment matrix</h2>
+          <span class="pill" id="matrix-summary">0 mapped</span>
+        </div>
+        <div id="assignment-list" class="stack"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel__heading">
+          <h2>Enter review</h2>
+          <span class="pill">Scores + comments</span>
+        </div>
+        <form id="review-form" class="form stack">
+          <div class="field-grid">
+            <label>
+              Reviewer
+              <select name="reviewerId" id="reviewer-select" required></select>
+            </label>
+            <label>
+              Submission
+              <select name="submissionId" id="review-submission" required></select>
+            </label>
+            <label>
+              Relevance
+              <input name="relevance" type="number" min="1" max="10" step="1" required>
+            </label>
+            <label>
+              Clarity
+              <input name="clarity" type="number" min="1" max="10" step="1" required>
+            </label>
+            <label>
+              Implementation detail
+              <input name="implementation" type="number" min="1" max="10" step="1" required>
+            </label>
+            <label>
+              Impact
+              <input name="impact" type="number" min="1" max="10" step="1" required>
+            </label>
+            <label>
+              Accessibility and inclusion
+              <input name="inclusion" type="number" min="1" max="10" step="1" required>
+            </label>
+            <label>
+              Recommendation
+              <select name="recommendation" required>
+                <option value="Strong accept">Strong accept</option>
+                <option value="Accept">Accept</option>
+                <option value="Borderline">Borderline</option>
+                <option value="Reject">Reject</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            Reviewer comments
+            <textarea name="comments" rows="4" required></textarea>
+          </label>
+          <button class="button" type="submit">Save review</button>
+        </form>
+      </article>
+
+      <article class="panel">
+        <div class="panel__heading">
+          <h2>Completed reviews</h2>
+          <span class="pill" id="completed-summary">0 recorded</span>
+        </div>
+        <div id="review-list" class="stack"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel__heading">
+          <h2>Shortlisted abstracts</h2>
+          <span class="pill">Top 5</span>
+        </div>
+        <div id="shortlist-list" class="stack"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel__heading">
+          <h2>Data tools</h2>
+          <span class="pill">Local backup</span>
+        </div>
+        <div class="stack">
+          <p class="muted">This review portal reads the same event data as the submission portal and stores it in your browser.</p>
+          <div class="button-row">
+            <button id="export-data" class="button button--secondary" type="button">Export JSON</button>
+            <label class="button button--ghost" for="import-data">Import JSON</label>
+            <input id="import-data" type="file" accept="application/json" hidden>
+            <button id="reset-data" class="button button--danger" type="button">Reset demo data</button>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <template id="empty-state-template">
+    <div class="empty-state">
+      <p></p>
+    </div>
+  </template>
+
+  <script src="./shared.js"></script>
+  <script src="./review-app.js"></script>
+</body>
+</html>
