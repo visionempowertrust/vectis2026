@@ -1,7 +1,5 @@
 ﻿const store = window.PortalStore;
 let state = store.loadState();
-store.seedAssignmentsIfEmpty(state);
-store.saveState(state);
 
 const elements = {
   submissionCount: document.querySelector("#submission-count"),
@@ -31,7 +29,16 @@ const elements = {
 };
 
 bindEvents();
-loadAndRender();
+loadRemoteState();
+
+async function loadRemoteState() {
+  const remote = await store.loadStateRemote();
+  if (remote) {
+    state = remote;
+    store.saveState(state);
+  }
+  render();
+}
 
 function bindEvents() {
   elements.reviewerForm.addEventListener("submit", handleReviewerSave);
@@ -42,12 +49,6 @@ function bindEvents() {
   elements.resetData.addEventListener("click", handleReset);
   document.querySelector("#auto-assign").addEventListener("click", autoAssignMissingReviews);
   elements.reviewerSelect.addEventListener("change", populateReviewSubmissionOptions);
-}
-
-async function loadAndRender() {
-  const remoteSubs = await store.listSubmissionsRemote();
-  state.submissions = remoteSubs;
-  render();
 }
 
 function handleReviewerSave(event) {
@@ -185,11 +186,13 @@ function handleReset() {
   }
 
   state = store.resetState();
+  persist();
   render();
 }
 
-function persist() {
+async function persist() {
   store.saveState(state);
+  await store.saveStateRemote(state);
 }
 
 function render() {

@@ -40,18 +40,28 @@
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
-  function seedAssignmentsIfEmpty(state) {
-    if (state.assignments.length || state.submissions.length < 2 || state.reviewers.length < 2) {
-      return;
+  async function loadStateRemote() {
+    if (!supabase) return null;
+    const { data, error } = await supabase.storage.from(SUPABASE_BUCKET).download("state/state.json");
+    if (error || !data) return null;
+    try {
+      const text = await data.text();
+      const parsed = JSON.parse(text);
+      return {
+        submissions: parsed.submissions || [],
+        reviewers: parsed.reviewers || [],
+        assignments: parsed.assignments || [],
+        reviews: parsed.reviews || []
+      };
+    } catch {
+      return null;
     }
-
-    state.assignments = [];
   }
 
-  function resetState() {
-    const state = structuredClone(demoState);
-    saveState(state);
-    return state;
+  async function saveStateRemote(state) {
+    if (!supabase) return;
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    await supabase.storage.from(SUPABASE_BUCKET).upload("state/state.json", blob, { upsert: true });
   }
 
   // IndexedDB attachment storage (local cache for older records)
@@ -211,14 +221,8 @@
     STORAGE_KEY,
     loadState,
     saveState,
-    seedAssignmentsIfEmpty,
-    resetState,
-    average,
-    truncate,
-    escapeHtml,
-    renderCollection,
-    exportState,
-    importState,
+    loadStateRemote,
+    saveStateRemote,
     saveAttachmentLocal,
     getAttachmentLocal,
     uploadSubmissionRemote,

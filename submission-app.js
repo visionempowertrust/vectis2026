@@ -29,7 +29,8 @@ const requiredFields = [
 ];
 
 async function loadAndRender() {
-  state.submissions = await store.listSubmissionsRemote();
+  const remoteState = await store.loadStateRemote();
+  state = remoteState || store.loadState();
   render();
 }
 
@@ -62,12 +63,15 @@ async function handleSubmissionSave(event) {
   };
 
   try {
-    await store.uploadSubmissionRemote(submission, pendingAttachmentFile);
+    const saved = await store.uploadSubmissionRemote(submission, pendingAttachmentFile);
+    state.submissions.unshift(saved);
     pendingAttachmentFile = null;
     pendingAttachmentName = null;
     setUploadStatus("", false);
     event.currentTarget.reset();
-    await loadAndRender();
+    store.saveState(state);
+    await store.saveStateRemote(state);
+    render();
   } catch (error) {
     setUploadStatus("Upload failed. Please try again.", true);
   }
@@ -181,7 +185,7 @@ function render() {
         </div>
         <p>${store.escapeHtml(submission.shortAbstract || "")}</p>
         <p class="muted">Background: ${store.escapeHtml(store.truncate(submission.background || "", 180))}</p>
-        ${submission.attachmentName && submission.attachmentUrl ? `<a class="button button--ghost" href="${submission.attachmentUrl}" target="_blank" rel="noopener">Download attachment</a>` : ""}
+        ${submission.attachmentUrl ? `<a class="button button--ghost" href="${submission.attachmentUrl}" target="_blank" rel="noopener">Download attachment</a>` : ""}
       </article>
     `
   );
