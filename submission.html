@@ -22,7 +22,7 @@
         <p class="eyebrow">Computational Thinking in Schools 2026</p>
         <h1>Submission portal</h1>
         <p class="hero__text">
-          Teachers can submit abstracts here.
+          Teachers can submit abstracts here by filling the form or uploading a completed file (DOCX/JSON/TXT).
         </p>
       </div>
       <div class="hero__meta">
@@ -42,7 +42,15 @@
           <h2>New submission</h2>
           <span class="pill">Teacher entry</span>
         </div>
-        <form id="submission-form" class="form stack">
+        <div class="stack">
+          <div class="upload-row">
+            <label class="upload-label">
+              Upload completed file (JSON export or template text)
+              <input id="submission-upload" type="file" accept=".json,.txt,.doc,.docx" />
+            </label>
+            <p id="upload-status" class="muted">Upload a portal JSON export or a key:value text file; we’ll verify required sections before filling the form.</p>
+          </div>
+        </div>        <form id="submission-form" class="form stack">
           <div class="field-grid">
             <label>
               Abstract title
@@ -144,7 +152,11 @@
     </div>
   </template>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./shared.js"></script>
   <script src="./submission-app.js"></script>
 </body>
 </html>
+
+
+

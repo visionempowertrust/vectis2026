@@ -31,7 +31,7 @@ const elements = {
 };
 
 bindEvents();
-render();
+loadAndRender();
 
 function bindEvents() {
   elements.reviewerForm.addEventListener("submit", handleReviewerSave);
@@ -42,6 +42,12 @@ function bindEvents() {
   elements.resetData.addEventListener("click", handleReset);
   document.querySelector("#auto-assign").addEventListener("click", autoAssignMissingReviews);
   elements.reviewerSelect.addEventListener("change", populateReviewSubmissionOptions);
+}
+
+async function loadAndRender() {
+  const remoteSubs = await store.listSubmissionsRemote();
+  state.submissions = remoteSubs;
+  render();
 }
 
 function handleReviewerSave(event) {
@@ -240,6 +246,7 @@ function renderAssignmentList() {
         <h3>${store.escapeHtml(submission.title)}</h3>
         <p class="muted">${store.escapeHtml(submission.schoolName)}</p>
         <div class="meta-row">${chips}</div>
+        ${submission.attachmentUrl ? `<a class="button button--ghost" href="${submission.attachmentUrl}" target="_blank" rel="noopener">Download attachment</a>` : ""}
       </article>
     `;
   });
@@ -289,6 +296,7 @@ function renderDashboard() {
         <span><strong>Reviews:</strong> ${entry.metrics.reviewCount}</span>
         <span><strong>School:</strong> ${store.escapeHtml(entry.submission.schoolName)}</span>
       </div>
+      ${entry.submission.attachmentUrl ? `<a class="button button--ghost" href="${entry.submission.attachmentUrl}" target="_blank" rel="noopener">Download attachment</a>` : ""}
     </article>
   `);
 
@@ -306,87 +314,4 @@ function renderDashboard() {
     `;
   });
 }
-
-function populateAssignmentOptions() {
-  populateSelect(elements.assignmentSubmission, state.submissions, "Choose a submission", (submission) => submission.title);
-  populateSelect(elements.assignmentReviewer, state.reviewers, "Choose a reviewer", (reviewer) => `${reviewer.name} (${getAssignmentsForReviewer(reviewer.id).length}/${reviewer.capacity})`);
-}
-
-function populateReviewerOptions() {
-  populateSelect(elements.reviewerSelect, state.reviewers, "Choose a reviewer", (reviewer) => reviewer.name);
-}
-
-function populateReviewSubmissionOptions() {
-  const reviewerId = elements.reviewerSelect.value;
-  const assignedSubmissionIds = reviewerId ? getAssignmentsForReviewer(reviewerId).map((entry) => entry.submissionId) : [];
-  const assignedSubmissions = state.submissions.filter((submission) => assignedSubmissionIds.includes(submission.id));
-  populateSelect(elements.reviewSubmission, assignedSubmissions, reviewerId ? "Choose an assigned submission" : "Choose a reviewer first", (submission) => submission.title);
-}
-
-function populateSelect(select, items, placeholder, labelGetter) {
-  const currentValue = select.value;
-  select.innerHTML = `<option value="">${placeholder}</option>` + items.map((item) => `<option value="${item.id}">${store.escapeHtml(labelGetter(item))}</option>`).join("");
-  if (items.some((item) => item.id === currentValue)) {
-    select.value = currentValue;
-  }
-}
-
-function getRankedSubmissions() {
-  return state.submissions
-    .map((submission) => ({
-      submission,
-      metrics: getSubmissionMetrics(submission.id)
-    }))
-    .sort((left, right) => {
-      if (right.metrics.averageScore !== left.metrics.averageScore) {
-        return right.metrics.averageScore - left.metrics.averageScore;
-      }
-      return right.metrics.reviewCount - left.metrics.reviewCount;
-    });
-}
-
-function getSubmissionMetrics(submissionId) {
-  const reviews = state.reviews.filter((review) => review.submissionId === submissionId);
-  const assignments = getAssignmentsForSubmission(submissionId);
-  return {
-    reviewCount: reviews.length,
-    assignmentCount: assignments.length,
-    averageScore: reviews.length ? store.average(reviews.map((review) => review.totalScore)) : 0
-  };
-}
-
-function getAssignmentsForSubmission(submissionId) {
-  return state.assignments.filter((entry) => entry.submissionId === submissionId);
-}
-
-function getAssignmentsForReviewer(reviewerId) {
-  return state.assignments.filter((entry) => entry.reviewerId === reviewerId);
-}
-
-function findReviewer(reviewerId) {
-  return state.reviewers.find((reviewer) => reviewer.id === reviewerId);
-}
-
-function findSubmission(submissionId) {
-  return state.submissions.find((submission) => submission.id === submissionId);
-}
-
-function statusText(metrics) {
-  if (metrics.reviewCount >= 2) {
-    return "Ready";
-  }
-  if (metrics.assignmentCount > 0) {
-    return "Under review";
-  }
-  return "Needs assignment";
-}
-
-function statusClass(metrics) {
-  if (metrics.reviewCount >= 2) {
-    return "status--good";
-  }
-  if (metrics.assignmentCount > 0) {
-    return "status--warn";
-  }
-  return "status--muted";
-}
+*** End Patch
