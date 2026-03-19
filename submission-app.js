@@ -2,6 +2,7 @@
 let state = { submissions: [], reviewers: [], assignments: [], reviews: [] };
 let pendingAttachmentFile = null;
 let pendingAttachmentName = null;
+let attachmentMode = false;
 
 const elements = {
   submissionCount: document.querySelector("#submission-count"),
@@ -15,6 +16,7 @@ const elements = {
 elements.submissionForm.addEventListener("submit", handleSubmissionSave);
 elements.uploadInput?.addEventListener("change", handleUpload);
 loadAndRender();
+setRequired(true);
 
 const requiredFields = [
   "title",
@@ -67,8 +69,10 @@ async function handleSubmissionSave(event) {
     state.submissions.unshift(saved);
     pendingAttachmentFile = null;
     pendingAttachmentName = null;
+    attachmentMode = false;
     setUploadStatus("", false);
     event.currentTarget.reset();
+    setRequired(true);
     store.saveState(state);
     await store.saveStateRemote(state);
     render();
@@ -96,6 +100,8 @@ function handleUpload(event) {
         populateForm(parsed);
         pendingAttachmentFile = null;
         pendingAttachmentName = null;
+        attachmentMode = false;
+        setRequired(true);
         setUploadStatus("File loaded. Review the fields below and click Save submission to finish.", false);
       } catch (error) {
         setUploadStatus("Could not read that file. Upload a JSON export or a text file with key:value lines matching the template fields.", true);
@@ -105,6 +111,8 @@ function handleUpload(event) {
   } else if (ext === "doc" || ext === "docx") {
     pendingAttachmentFile = file;
     pendingAttachmentName = file.name;
+    attachmentMode = true;
+    setRequired(false);
     setUploadStatus("DOC/DOCX attached. Please ensure the form fields match the template before saving.", false);
   } else {
     setUploadStatus("Unsupported file type. Use DOC/DOCX for attachments or JSON/TXT for auto-fill.", true);
@@ -166,6 +174,15 @@ function setUploadStatus(message, isError) {
   if (!elements.uploadStatus) return;
   elements.uploadStatus.textContent = message;
   elements.uploadStatus.style.color = isError ? "#8e2d2d" : "#556070";
+}
+
+function setRequired(enabled) {
+  requiredFields.forEach((name) => {
+    const input = elements.submissionForm.querySelector(`[name="${name}"]`);
+    if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
+      input.required = enabled && !attachmentMode;
+    }
+  });
 }
 
 function render() {
