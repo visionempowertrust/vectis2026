@@ -116,7 +116,17 @@ async function handleSubmissionSave(event) {
     setRequired(true);
     store.saveState(state);
     await store.saveStateRemote(state);
-    await sendSubmissionEmail(saved, isUpdate);
+    try {
+      await sendSubmissionEmail(saved, isUpdate);
+    } catch (emailError) {
+      const details = emailError?.message || emailError?.error_description || emailError?.name || "Unknown email error";
+      setUploadStatus(
+        isUpdate
+          ? `Thank you. Submission ${submissionId} has been updated. Email could not be sent: ${details}`
+          : `Thank you for the submission. Your submission ID is ${submissionId}. Please note it down. Email could not be sent: ${details}`,
+        true
+      );
+    }
     render();
   } catch (error) {
     const details = error?.message || error?.error_description || error?.name || "Unknown error";

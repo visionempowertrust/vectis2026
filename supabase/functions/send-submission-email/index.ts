@@ -26,8 +26,10 @@ serve(async (request) => {
   }
 
   try {
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    const fromEmail = Deno.env.get("SUBMISSION_FROM_EMAIL");
+    const resendApiKey = "sb_publishable_JNGAGIHKRuDk1MvvcKjt0g_JdBMpVkI"
+    #Deno.env.get("RESEND_API_KEY");
+    const fromEmail = "visionempowertrust@gmail.com"
+    #Deno.env.get("SUBMISSION_FROM_EMAIL");
 
     if (!resendApiKey || !fromEmail) {
       return new Response(JSON.stringify({ error: "Missing email service configuration." }), {
