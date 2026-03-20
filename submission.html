@@ -81,11 +81,33 @@
             </label>
             <label>
               Contact email(s)
-              <input name="emails" type="text" placeholder="teacher@school.org" required>
+              <input name="emails" type="email" inputmode="email" multiple placeholder="teacher@school.org" required>
             </label>
             <label>
               CT implementation start year
-              <input name="implementationStart" type="text" placeholder="2023">
+              <input name="implementationStart" type="number" min="2017" max="2025" step="1" placeholder="2023">
+            </label>
+            <label>
+              Theme
+              <select name="theme" required>
+                <option value="">Choose a theme</option>
+                <option value="CT and Coding">1. CT and Coding</option>
+                <option value="CT based unplugged activities in the classroom (in any subject)">2. CT based unplugged activities in the classroom (in any subject)</option>
+                <option value="CT and use of AI">3. CT and use of AI</option>
+                <option value="CT and teaching AI">4. CT and teaching AI</option>
+                <option value="CT for students with special needs">5. CT for students with special needs</option>
+                <option value="CT for professional development of teachers">6. CT for professional development of teachers</option>
+                <option value="CT in Mathematics Education">7. CT in Mathematics Education</option>
+                <option value="CT in Science Education">8. CT in Science Education</option>
+                <option value="CT in Social Science Education">9. CT in Social Science Education</option>
+                <option value="Challenges in integrating CT in the school curriculum">10. Challenges in integrating CT in the school curriculum</option>
+                <option value="Assessment of CT">11. Assessment of CT</option>
+                <option value="Impact of CT activities on student learning">12. Impact of CT activities on student learning</option>
+                <option value="Localisation and adaptation of CSpathshala curriculum to suit local needs">13. Localisation and adaptation of CSpathshala curriculum to suit local needs</option>
+                <option value="CT and Physical Computing">14. CT and Physical Computing</option>
+                <option value="CT and National Education Policy">15. CT and National Education Policy</option>
+                <option value="CT and societal problems">16. CT and societal problems</option>
+              </select>
             </label>
             <label>
               Weekly CT periods

@@ -227,6 +227,20 @@
     return data;
   }
 
+  async function sendSubmissionEmail(payload) {
+    if (!supabase) {
+      throw new Error("Supabase client unavailable");
+    }
+
+    const { error } = await supabase.functions.invoke("send-submission-email", {
+      body: payload
+    });
+
+    if (error) {
+      throw error;
+    }
+  }
+
   function average(values) {
     if (!values.length) {
       return 0;
@@ -321,6 +335,7 @@
     listSubmissionsRemote,
     listSubmissionsRemoteDetailed,
     loadStateRemoteDetailed,
-    downloadAttachment
+    downloadAttachment,
+    sendSubmissionEmail
   };
 })();

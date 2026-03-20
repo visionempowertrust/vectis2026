@@ -26,6 +26,7 @@ const requiredFields = [
   "schoolName",
   "schoolAddress",
   "emails",
+  "theme",
   "shortAbstract"
 ];
 
@@ -62,6 +63,12 @@ async function handleSubmissionSave(event) {
     return;
   }
 
+  const validationError = validateSubmission(formData, existingSubmission, isUpdate);
+  if (validationError) {
+    setUploadStatus(validationError, true);
+    return;
+  }
+
   const submissionId = isUpdate ? requestedId : createSubmissionId();
   const rawSubmission = {
     id: submissionId,
@@ -72,6 +79,7 @@ async function handleSubmissionSave(event) {
     schoolName: formData.get("schoolName")?.toString().trim(),
     schoolAddress: formData.get("schoolAddress")?.toString().trim(),
     emails: formData.get("emails")?.toString().trim(),
+    theme: formData.get("theme")?.toString().trim(),
     implementationStart: formData.get("implementationStart")?.toString().trim(),
     weeklyPeriods: parseOptionalNumber(formData.get("weeklyPeriods")),
     teacherCount: parseOptionalNumber(formData.get("teacherCount")),
@@ -108,6 +116,7 @@ async function handleSubmissionSave(event) {
     setRequired(true);
     store.saveState(state);
     await store.saveStateRemote(state);
+    await sendSubmissionEmail(saved, isUpdate);
     render();
   } catch (error) {
     const details = error?.message || error?.error_description || error?.name || "Unknown error";
@@ -138,6 +147,36 @@ function setUploadStatus(message, isError) {
   if (!elements.uploadStatus) return;
   elements.uploadStatus.textContent = message;
   elements.uploadStatus.style.color = isError ? "#8e2d2d" : "#556070";
+}
+
+function validateSubmission(formData, existingSubmission, isUpdate) {
+  const emails = formData.get("emails")?.toString().trim() || "";
+  const implementationStart = formData.get("implementationStart")?.toString().trim() || "";
+
+  const effectiveEmails = resolveUpdatedValue(emails, existingSubmission?.emails, isUpdate);
+  if (effectiveEmails && !hasValidEmails(effectiveEmails)) {
+    return "Please enter a valid email address.";
+  }
+
+  const effectiveYear = resolveUpdatedValue(implementationStart, existingSubmission?.implementationStart, isUpdate);
+  if (effectiveYear) {
+    const year = Number(effectiveYear);
+    if (!Number.isInteger(year) || year < 2017 || year > 2025) {
+      return "CT implementation start year must be between 2017 and 2025.";
+    }
+  }
+
+  return "";
+}
+
+async function sendSubmissionEmail(submission, isUpdate) {
+  await store.sendSubmissionEmail({
+    submissionId: submission.id,
+    title: submission.title || "Untitled submission",
+    teacherEmails: submission.emails || "",
+    ccEmail: "meera@visionempowertrust.org",
+    isUpdate
+  });
 }
 
 function handleUpdateToggle() {
@@ -178,6 +217,22 @@ function mergeSubmissionUpdate(existingSubmission, incomingSubmission) {
   return merged;
 }
 
+function resolveUpdatedValue(incomingValue, existingValue, isUpdate) {
+  if (isUpdate && (!incomingValue || incomingValue.trim() === "")) {
+    return existingValue || "";
+  }
+  return incomingValue;
+}
+
+function hasValidEmails(value) {
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return value
+    .split(/[,\n;]/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .every((entry) => emailPattern.test(entry));
+}
+
 function parseOptionalNumber(value) {
   const text = value?.toString().trim();
   if (!text) {
@@ -190,7 +245,7 @@ function parseOptionalNumber(value) {
 function setRequired(enabled) {
   requiredFields.forEach((name) => {
     const input = elements.submissionForm.querySelector(`[name="${name}"]`);
-    if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
+    if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement || input instanceof HTMLSelectElement) {
       input.required = enabled && !attachmentMode;
     }
   });
@@ -211,6 +266,7 @@ function render() {
           <span><strong>ID:</strong> ${store.escapeHtml(submission.id)}</span>
           <span><strong>Authors:</strong> ${store.escapeHtml(submission.authors)}</span>
           <span><strong>School:</strong> ${store.escapeHtml(submission.schoolName)}</span>
+          <span><strong>Theme:</strong> ${store.escapeHtml(submission.theme || "-")}</span>
         </div>
         <p>${store.escapeHtml(submission.shortAbstract || "")}</p>
         ${submission.attachmentUrl ? `<a class="button button--ghost" href="${submission.attachmentUrl}" target="_blank" rel="noopener">Download attachment</a>` : ""}
