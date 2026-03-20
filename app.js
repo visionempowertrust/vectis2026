@@ -2,76 +2,10 @@
 
 const demoState = {
   submissions: [
-    {
-      id: crypto.randomUUID(),
-      title: "Tactile Debugging Patterns for Middle School Learners",
-      authors: "Anita Rao, Mehul Shah",
-      schoolName: "Vision Empower Trust Learning Centre",
-      schoolAddress: "Bengaluru, Karnataka",
-      emails: "anita@vet.org, mehul@vet.org",
-      implementationStart: "2022",
-      weeklyPeriods: 3,
-      teacherCount: 2,
-      studentCount: 36,
-      grades: "6 to 8",
-      genderRatio: "18 girls, 18 boys",
-      evidenceLink: "https://example.org/tactile-debugging",
-      shortAbstract: "Students explored debugging through tactile flow cards and peer narration. The paper documents planning, facilitation, and classroom evidence from a visually inclusive computational thinking unit.",
-      background: "The school serves mixed socio-economic groups and began structured CT instruction in 2022. The team wanted an unplugged method that allowed blind and low-vision students to reason through program behavior together.",
-      implementation: "Teachers used embossed instruction cards, paired discussions, and table-top algorithm walks. Students predicted outcomes, corrected logic errors, and documented alternate solutions in audio notes.",
-      challenges: "Teachers needed extra prep time to create tactile material sets.",
-      impact: "Teachers recorded stronger student explanations, better debugging persistence, and improved collaborative vocabulary during classroom observation cycles.",
-      conclusion: "Tactile debugging supported both access and rigor when routines were consistent across classes.",
-      references: "Internal classroom observation notes",
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: crypto.randomUUID(),
-      title: "Inclusive Story Sequencing as an Entry Point to Algorithms",
-      authors: "Shalini Menon",
-      schoolName: "National Association for the Blind School",
-      schoolAddress: "Mumbai, Maharashtra",
-      emails: "shalini@example.org",
-      implementationStart: "2021",
-      weeklyPeriods: 2,
-      teacherCount: 1,
-      studentCount: 28,
-      grades: "4 to 6",
-      genderRatio: "13 girls, 15 boys",
-      evidenceLink: "",
-      shortAbstract: "This paper describes a multilingual story-sequencing approach to teaching algorithms in early grades using tactile objects, oral retelling, and classroom role-play.",
-      background: "The school sought low-cost strategies that would help learners connect daily routines with algorithmic thinking before transitioning to symbolic representation.",
-      implementation: "Students decomposed stories into steps, sorted tactile cards, and tested alternate sequences as a class. Teachers documented misconceptions and adaptation strategies.",
-      challenges: "Maintaining comparable pacing across mixed-age groups.",
-      impact: "Learners became more confident in using step-by-step reasoning and teachers reported stronger participation from students who were previously hesitant.",
-      conclusion: "Narrative structure helped bridge language, memory, and algorithm design.",
-      references: "",
-      createdAt: new Date().toISOString()
-    }
+    
   ],
   reviewers: [
-    {
-      id: crypto.randomUUID(),
-      name: "Dr. Kavita Iyer",
-      email: "kavita@example.org",
-      expertise: "Accessible pedagogy, teacher development",
-      capacity: 3
-    },
-    {
-      id: crypto.randomUUID(),
-      name: "Rohan D'Souza",
-      email: "rohan@example.org",
-      expertise: "Computational thinking curriculum, assessment",
-      capacity: 3
-    },
-    {
-      id: crypto.randomUUID(),
-      name: "Mina Patel",
-      email: "mina@example.org",
-      expertise: "Inclusion, classroom research",
-      capacity: 2
-    }
-  ],
+      ],
   assignments: [],
   reviews: []
 };
