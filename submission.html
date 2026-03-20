@@ -13,7 +13,7 @@
       <img class="brand-bar__logo" src="./vision-empower-logo.svg" alt="Vision Empower Trust logo">
       <div class="brand-bar__text">
         <p class="eyebrow">Hosted by Vision Empower Trust</p>
-        <p class="brand-bar__caption">Teacher submission portal</p>
+        <p class="brand-bar__caption">Abstract Submission portal</p>
       </div>
     </div>
 
@@ -22,7 +22,7 @@
         <p class="eyebrow">Computational Thinking in Schools 2026</p>
         <h1>Submission portal</h1>
         <p class="hero__text">
-          Teachers can submit abstracts here by filling the form or uploading a completed file (DOCX/JSON/TXT).
+          Teachers can submit abstracts here by filling the details and uploading a completed DOCX file.
         </p>
       </div>
       <div class="hero__meta">
@@ -39,18 +39,29 @@
     <section class="split">
       <article class="panel">
         <div class="panel__heading">
-          <h2>New submission</h2>
-          <span class="pill">Teacher entry</span>
+          <h2>Submission</h2>
         </div>
-        <div class="stack">
-          <div class="upload-row">
-            <label class="upload-label">
-              Upload completed file (JSON export or template text)
-              <input id="submission-upload" type="file" accept=".json,.txt,.doc,.docx" />
+        <form id="submission-form" class="form stack">
+          <div class="field-grid">
+            <label class="checkbox-row">
+              <input id="mode-new" name="submissionMode" type="radio" value="new" checked />
+              New
             </label>
-            <p id="upload-status" class="muted">Upload a portal JSON export or a key:value text file; we’ll verify required sections before filling the form.</p>
+            </div>
+            <div class="field-grid">
+            <label class="checkbox-row">
+              <input id="mode-update" name="submissionMode" type="radio" value="update" />
+              Update
+            </label>
           </div>
-        </div>        <form id="submission-form" class="form stack">
+          <div id="submission-id-row" hidden>
+            <label>
+              Submission ID (for Updates)
+              <input id="submission-id" name="submissionId" type="text" placeholder="VE-CTIS-2026-123" />
+            </label>
+          </div>
+          <p>
+
           <div class="field-grid">
             <label>
               Abstract title
@@ -92,43 +103,20 @@
               Grades served
               <input name="grades" type="text" placeholder="3 to 8">
             </label>
-            <label>
-              Gender ratio
-              <input name="genderRatio" type="text" placeholder="52% girls, 48% boys">
-            </label>
-            <label>
-              Video or evidence link
-              <input name="evidenceLink" type="url" placeholder="https://">
-            </label>
           </div>
           <label>
             Short abstract (about 150 words)
             <textarea name="shortAbstract" rows="4" required></textarea>
           </label>
-          <label>
-            Section 1: Background
-            <textarea name="background" rows="5" required></textarea>
-          </label>
-          <label>
-            Section 2: Implementation
-            <textarea name="implementation" rows="5" required></textarea>
-          </label>
-          <label>
-            Challenges
-            <textarea name="challenges" rows="3"></textarea>
-          </label>
-          <label>
-            Section 3: Impact
-            <textarea name="impact" rows="5" required></textarea>
-          </label>
-          <label>
-            Section 4: Conclusion
-            <textarea name="conclusion" rows="3"></textarea>
-          </label>
-          <label>
-            Bibliography or references
-            <textarea name="references" rows="3"></textarea>
-          </label>
+          <div class="stack">
+            <div class="upload-row">
+              <label class="upload-label">
+                Upload completed DOCX file
+                <input id="submission-upload" type="file" accept=".doc,.docx" />
+              </label>
+              <p id="upload-status" class="muted">Attach a DOCX file directly. If a file is uploaded, the remaining form fields are optional.</p>
+            </div>
+          </div>
           <div class="button-row">
             <button class="button" type="submit">Save submission</button>
             <button class="button button--ghost" type="reset">Clear</button>

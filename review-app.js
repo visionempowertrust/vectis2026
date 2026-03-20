@@ -5,6 +5,7 @@ const elements = {
   submissionCount: document.querySelector("#submission-count"),
   reviewerCount: document.querySelector("#reviewer-count"),
   reviewCount: document.querySelector("#review-count"),
+  debugStatus: document.querySelector("#debug-status"),
   rankingsSummary: document.querySelector("#rankings-summary"),
   assignmentSummary: document.querySelector("#assignment-summary"),
   reviewerForm: document.querySelector("#reviewer-form"),
@@ -32,21 +33,57 @@ bindEvents();
 loadRemoteState();
 
 async function loadRemoteState() {
-  const remote = await store.loadStateRemote();
-  if (remote) {
-    state = remote;
+  const debugMessages = [];
+  const remoteState = await store.loadStateRemoteDetailed();
+  if (remoteState.ok && remoteState.state) {
+    state = remoteState.state;
     store.saveState(state);
+  } else {
+    state = store.loadState();
   }
+
+  if (remoteState.ok) {
+    debugMessages.push(`State file loaded: ${state.submissions.length} submissions, ${state.reviewers.length} reviewers, ${state.reviews.length} reviews.`);
+  } else {
+    debugMessages.push(`State file read failed: ${remoteState.error}`);
+  }
+
+  const remoteSubmissions = await store.listSubmissionsRemoteDetailed();
+  if (remoteSubmissions.ok) {
+    debugMessages.push(`Submission folder listed: ${remoteSubmissions.filesFound} files found, ${remoteSubmissions.submissions.length} valid submission records parsed.`);
+  } else {
+    debugMessages.push(`Submission folder read failed: ${remoteSubmissions.error}`);
+  }
+
+  if (remoteSubmissions.submissions.length) {
+    const byId = new Map((state.submissions || []).map((submission) => [submission.id, submission]));
+    remoteSubmissions.submissions.forEach((submission) => {
+      byId.set(submission.id, { ...(byId.get(submission.id) || {}), ...submission });
+    });
+    state.submissions = Array.from(byId.values()).sort(
+      (left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0)
+    );
+  }
+
+  debugMessages.push(`Review portal final submission count: ${state.submissions.length}.`);
+
+  store.saveState(state);
+  renderDebugStatus(debugMessages);
   render();
+}
+
+function renderDebugStatus(messages) {
+  if (!elements.debugStatus) {
+    return;
+  }
+
+  elements.debugStatus.innerHTML = messages.map((message) => `<p>${store.escapeHtml(message)}</p>`).join("");
 }
 
 function bindEvents() {
   elements.reviewerForm.addEventListener("submit", handleReviewerSave);
   elements.assignmentForm.addEventListener("submit", handleAssignmentSave);
   elements.reviewForm.addEventListener("submit", handleReviewSave);
-  elements.exportData.addEventListener("click", () => store.exportState(state));
-  elements.importData.addEventListener("change", handleImport);
-  elements.resetData.addEventListener("click", handleReset);
   document.querySelector("#auto-assign").addEventListener("click", autoAssignMissingReviews);
   elements.reviewerSelect.addEventListener("change", populateReviewSubmissionOptions);
 }
@@ -103,11 +140,18 @@ function handleReviewSave(event) {
   }
 
   const scores = {
-    relevance: Number(formData.get("relevance")) || 0,
-    clarity: Number(formData.get("clarity")) || 0,
-    implementation: Number(formData.get("implementation")) || 0,
-    impact: Number(formData.get("impact")) || 0,
-    inclusion: Number(formData.get("inclusion")) || 0
+    objective: Number(formData.get("objective")) || 0,
+    resources: Number(formData.get("resources")) || 0,
+    ctAlignment: Number(formData.get("ctAlignment")) || 0,
+    evidence: Number(formData.get("evidence")) || 0,
+    challenges: Number(formData.get("challenges")) || 0,
+    inPictures: Number(formData.get("inPictures")) || 0,
+    studentExperiences: Number(formData.get("studentExperiences")) || 0,
+    decomposition: Number(formData.get("decomposition")) || 0,
+    algorithmicThinking: Number(formData.get("algorithmicThinking")) || 0,
+    patternRecognition: Number(formData.get("patternRecognition")) || 0,
+    abstraction: Number(formData.get("abstraction")) || 0,
+    potential: Number(formData.get("potential")) || 0
   };
 
   const existing = state.reviews.find((entry) => entry.reviewerId === reviewerId && entry.submissionId === submissionId);
@@ -199,14 +243,8 @@ function render() {
   elements.submissionCount.textContent = state.submissions.length;
   elements.reviewerCount.textContent = state.reviewers.length;
   elements.reviewCount.textContent = state.reviews.length;
-  elements.reviewersSummary.textContent = `${state.reviewers.length} active`;
-  elements.matrixSummary.textContent = `${state.assignments.length} mapped`;
-  elements.completedSummary.textContent = `${state.reviews.length} recorded`;
   elements.assignmentSummary.textContent = `${state.assignments.length} assignments`;
 
-  renderReviewerList();
-  renderAssignmentList();
-  renderReviewList();
   renderDashboard();
   populateAssignmentOptions();
   populateReviewerOptions();
@@ -278,9 +316,10 @@ function renderDashboard() {
   const ranked = getRankedSubmissions();
   elements.rankingsSummary.textContent = `${ranked.length} ranked`;
   elements.rankingsBody.innerHTML = ranked.length
-    ? ranked.map((entry, index) => `
+      ? ranked.map((entry, index) => `
         <tr>
           <td>${index + 1}</td>
+          <td>${store.escapeHtml(entry.submission.id || "-")}</td>
           <td>${store.escapeHtml(entry.submission.title)}</td>
           <td>${store.escapeHtml(entry.submission.schoolName)}</td>
           <td>${entry.metrics.averageScore ? entry.metrics.averageScore.toFixed(1) : "-"}</td>
@@ -288,20 +327,7 @@ function renderDashboard() {
           <td><span class="status ${statusClass(entry.metrics)}">${statusText(entry.metrics)}</span></td>
         </tr>
       `).join("")
-    : `<tr><td colspan="6">No ranked papers yet. Add reviews to see the leaderboard.</td></tr>`;
-
-  const shortlist = ranked.slice(0, 5);
-  store.renderCollection(elements.shortlistList, shortlist, "Your top-ranked abstracts will appear here.", (entry, index) => `
-    <article class="card">
-      <h3>${index + 1}. ${store.escapeHtml(entry.submission.title)}</h3>
-      <div class="meta-row">
-        <span><strong>Score:</strong> ${entry.metrics.averageScore ? entry.metrics.averageScore.toFixed(1) : "-"}</span>
-        <span><strong>Reviews:</strong> ${entry.metrics.reviewCount}</span>
-        <span><strong>School:</strong> ${store.escapeHtml(entry.submission.schoolName)}</span>
-      </div>
-      ${entry.submission.attachmentUrl ? `<a class="button button--ghost" href="${entry.submission.attachmentUrl}" target="_blank" rel="noopener">Download attachment</a>` : ""}
-    </article>
-  `);
+    : `<tr><td colspan="7">No ranked papers yet. Add reviews to see the leaderboard.</td></tr>`;
 
   store.renderCollection(elements.loadList, state.reviewers, "Reviewer load appears here after you add the committee.", (reviewer) => {
     const assignments = getAssignmentsForReviewer(reviewer.id).length;
@@ -317,4 +343,97 @@ function renderDashboard() {
     `;
   });
 }
-*** End Patch
+
+function populateAssignmentOptions() {
+  populateSelect(elements.assignmentSubmission, state.submissions, "Choose a submission", (submission) => submission.title || submission.id);
+  populateSelect(
+    elements.assignmentReviewer,
+    state.reviewers,
+    "Choose a reviewer",
+    (reviewer) => `${reviewer.name} (${getAssignmentsForReviewer(reviewer.id).length}/${reviewer.capacity})`
+  );
+}
+
+function populateReviewerOptions() {
+  populateSelect(elements.reviewerSelect, state.reviewers, "Choose a reviewer", (reviewer) => reviewer.name);
+}
+
+function populateReviewSubmissionOptions() {
+  const reviewerId = elements.reviewerSelect.value;
+  const assignedSubmissionIds = reviewerId ? getAssignmentsForReviewer(reviewerId).map((entry) => entry.submissionId) : [];
+  const assignedSubmissions = state.submissions.filter((submission) => assignedSubmissionIds.includes(submission.id));
+  populateSelect(
+    elements.reviewSubmission,
+    assignedSubmissions,
+    reviewerId ? "Choose an assigned submission" : "Choose a reviewer first",
+    (submission) => submission.title || submission.id
+  );
+}
+
+function populateSelect(select, items, placeholder, labelGetter) {
+  const currentValue = select.value;
+  select.innerHTML = `<option value="">${placeholder}</option>` + items.map((item) => `<option value="${item.id}">${store.escapeHtml(labelGetter(item))}</option>`).join("");
+  if (items.some((item) => item.id === currentValue)) {
+    select.value = currentValue;
+  }
+}
+
+function getRankedSubmissions() {
+  return state.submissions
+    .map((submission) => ({
+      submission,
+      metrics: getSubmissionMetrics(submission.id)
+    }))
+    .sort((left, right) => {
+      if (right.metrics.averageScore !== left.metrics.averageScore) {
+        return right.metrics.averageScore - left.metrics.averageScore;
+      }
+      return right.metrics.reviewCount - left.metrics.reviewCount;
+    });
+}
+
+function getSubmissionMetrics(submissionId) {
+  const reviews = state.reviews.filter((review) => review.submissionId === submissionId);
+  const assignments = getAssignmentsForSubmission(submissionId);
+  return {
+    reviewCount: reviews.length,
+    assignmentCount: assignments.length,
+    averageScore: reviews.length ? store.average(reviews.map((review) => review.totalScore)) : 0
+  };
+}
+
+function getAssignmentsForSubmission(submissionId) {
+  return state.assignments.filter((entry) => entry.submissionId === submissionId);
+}
+
+function getAssignmentsForReviewer(reviewerId) {
+  return state.assignments.filter((entry) => entry.reviewerId === reviewerId);
+}
+
+function findReviewer(reviewerId) {
+  return state.reviewers.find((reviewer) => reviewer.id === reviewerId);
+}
+
+function findSubmission(submissionId) {
+  return state.submissions.find((submission) => submission.id === submissionId);
+}
+
+function statusText(metrics) {
+  if (metrics.reviewCount >= 2) {
+    return "Ready";
+  }
+  if (metrics.assignmentCount > 0) {
+    return "Under review";
+  }
+  return "Needs assignment";
+}
+
+function statusClass(metrics) {
+  if (metrics.reviewCount >= 2) {
+    return "status--good";
+  }
+  if (metrics.assignmentCount > 0) {
+    return "status--warn";
+  }
+  return "status--muted";
+}

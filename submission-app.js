@@ -10,13 +10,15 @@ const elements = {
   submissionForm: document.querySelector("#submission-form"),
   submissionList: document.querySelector("#submission-list"),
   uploadInput: document.querySelector("#submission-upload"),
-  uploadStatus: document.querySelector("#upload-status")
+  uploadStatus: document.querySelector("#upload-status"),
+  modeInputs: document.querySelectorAll('input[name="submissionMode"]'),
+  submissionIdRow: document.querySelector("#submission-id-row"),
+  submissionIdInput: document.querySelector("#submission-id")
 };
 
 elements.submissionForm.addEventListener("submit", handleSubmissionSave);
 elements.uploadInput?.addEventListener("change", handleUpload);
-loadAndRender();
-setRequired(true);
+elements.modeInputs?.forEach((input) => input.addEventListener("change", handleUpdateToggle));
 
 const requiredFields = [
   "title",
@@ -24,60 +26,92 @@ const requiredFields = [
   "schoolName",
   "schoolAddress",
   "emails",
-  "shortAbstract",
-  "background",
-  "implementation",
-  "impact"
+  "shortAbstract"
 ];
+
+loadAndRender();
+setRequired(true);
+handleUpdateToggle();
 
 async function loadAndRender() {
   const remoteState = await store.loadStateRemote();
-  state = remoteState || store.loadState();
+  if (remoteState) {
+    state = remoteState;
+    store.saveState(state);
+  } else {
+    state = store.loadState();
+  }
   render();
 }
 
 async function handleSubmissionSave(event) {
   event.preventDefault();
-  const formData = new FormData(event.currentTarget);
-  const submission = {
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
+  const form = event.currentTarget;
+  const formData = new FormData(form);
+  const isUpdate = formData.get("submissionMode") === "update";
+  const requestedId = formData.get("submissionId")?.toString().trim();
+  const existingSubmission = isUpdate ? state.submissions.find((item) => item.id === requestedId) : null;
+
+  if (isUpdate && !requestedId) {
+    setUploadStatus("Please enter the submission ID to update an existing submission.", true);
+    return;
+  }
+
+  if (isUpdate && !existingSubmission) {
+    setUploadStatus(`No submission found for ID ${requestedId}. Please check the ID and try again.`, true);
+    return;
+  }
+
+  const submissionId = isUpdate ? requestedId : createSubmissionId();
+  const rawSubmission = {
+    id: submissionId,
+    createdAt: existingSubmission?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     title: formData.get("title")?.toString().trim(),
     authors: formData.get("authors")?.toString().trim(),
     schoolName: formData.get("schoolName")?.toString().trim(),
     schoolAddress: formData.get("schoolAddress")?.toString().trim(),
     emails: formData.get("emails")?.toString().trim(),
     implementationStart: formData.get("implementationStart")?.toString().trim(),
-    weeklyPeriods: Number(formData.get("weeklyPeriods")) || 0,
-    teacherCount: Number(formData.get("teacherCount")) || 0,
-    studentCount: Number(formData.get("studentCount")) || 0,
+    weeklyPeriods: parseOptionalNumber(formData.get("weeklyPeriods")),
+    teacherCount: parseOptionalNumber(formData.get("teacherCount")),
+    studentCount: parseOptionalNumber(formData.get("studentCount")),
     grades: formData.get("grades")?.toString().trim(),
-    genderRatio: formData.get("genderRatio")?.toString().trim(),
-    evidenceLink: formData.get("evidenceLink")?.toString().trim(),
     shortAbstract: formData.get("shortAbstract")?.toString().trim(),
-    background: formData.get("background")?.toString().trim(),
-    implementation: formData.get("implementation")?.toString().trim(),
-    challenges: formData.get("challenges")?.toString().trim(),
-    impact: formData.get("impact")?.toString().trim(),
-    conclusion: formData.get("conclusion")?.toString().trim(),
-    references: formData.get("references")?.toString().trim(),
-    attachmentName: pendingAttachmentName || null
+    attachmentName: pendingAttachmentName || existingSubmission?.attachmentName || null,
+    attachmentUrl: existingSubmission?.attachmentUrl || null,
+    attachmentPath: existingSubmission?.attachmentPath || null
   };
+  const submission = isUpdate ? mergeSubmissionUpdate(existingSubmission, rawSubmission) : rawSubmission;
 
   try {
     const saved = await store.uploadSubmissionRemote(submission, pendingAttachmentFile);
-    state.submissions.unshift(saved);
+    if (isUpdate) {
+      state.submissions = state.submissions.map((item) => (item.id === submissionId ? saved : item));
+    } else {
+      state.submissions.unshift(saved);
+    }
     pendingAttachmentFile = null;
     pendingAttachmentName = null;
     attachmentMode = false;
-    setUploadStatus("", false);
-    event.currentTarget.reset();
+    setUploadStatus(
+      isUpdate
+        ? `Thank you. Submission ${submissionId} has been updated.`
+        : `Thank you for the submission. Your submission ID is ${submissionId}.`,
+      false
+    );
+    form.reset();
+    elements.modeInputs?.forEach((input) => {
+      input.checked = input.value === "new";
+    });
+    handleUpdateToggle();
     setRequired(true);
     store.saveState(state);
     await store.saveStateRemote(state);
     render();
   } catch (error) {
-    setUploadStatus("Upload failed. Please try again.", true);
+    const details = error?.message || error?.error_description || error?.name || "Unknown error";
+    setUploadStatus(`Upload failed: ${details}`, true);
   }
 }
 
@@ -87,93 +121,70 @@ function handleUpload(event) {
 
   const ext = (file.name.split(".").pop() || "").toLowerCase();
 
-  if (ext === "json" || ext === "txt") {
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = parseUploadedContent(String(reader.result));
-        const missing = requiredFields.filter((field) => !parsed[field] || !String(parsed[field]).trim());
-        if (missing.length) {
-          setUploadStatus(`Missing required section(s): ${missing.join(", ")}. Please complete these before uploading.`, true);
-          return;
-        }
-        populateForm(parsed);
-        pendingAttachmentFile = null;
-        pendingAttachmentName = null;
-        attachmentMode = false;
-        setRequired(true);
-        setUploadStatus("File loaded. Review the fields below and click Save submission to finish.", false);
-      } catch (error) {
-        setUploadStatus("Could not read that file. Upload a JSON export or a text file with key:value lines matching the template fields.", true);
-      }
-    };
-    reader.readAsText(file);
-  } else if (ext === "doc" || ext === "docx") {
+  if (ext === "doc" || ext === "docx") {
     pendingAttachmentFile = file;
     pendingAttachmentName = file.name;
     attachmentMode = true;
     setRequired(false);
-    setUploadStatus("DOC/DOCX attached. Please ensure the form fields match the template before saving.", false);
+    setUploadStatus("DOC/DOCX attached. You can submit it directly without filling the remaining fields.", false);
   } else {
-    setUploadStatus("Unsupported file type. Use DOC/DOCX for attachments or JSON/TXT for auto-fill.", true);
+    setUploadStatus("Unsupported file type. Please upload a DOC or DOCX file.", true);
   }
 
   event.target.value = "";
-}
-
-function parseUploadedContent(raw) {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    const obj = {};
-    raw.split(/\r?\n/).forEach((line) => {
-      const [key, ...rest] = line.split(":");
-      if (key && rest.length) {
-        obj[key.trim()] = rest.join(":").trim();
-      }
-    });
-    return obj;
-  }
-}
-
-function populateForm(data) {
-  const fields = [
-    "title",
-    "authors",
-    "schoolName",
-    "schoolAddress",
-    "emails",
-    "implementationStart",
-    "weeklyPeriods",
-    "teacherCount",
-    "studentCount",
-    "grades",
-    "genderRatio",
-    "evidenceLink",
-    "shortAbstract",
-    "background",
-    "implementation",
-    "challenges",
-    "impact",
-    "conclusion",
-    "references"
-  ];
-
-  fields.forEach((name) => {
-    const input = elements.submissionForm.querySelector(`[name="${name}"]`);
-    if (!input) return;
-    const value = data[name];
-    if (value === undefined) return;
-    if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
-      input.value = String(value ?? "");
-    }
-  });
 }
 
 function setUploadStatus(message, isError) {
   if (!elements.uploadStatus) return;
   elements.uploadStatus.textContent = message;
   elements.uploadStatus.style.color = isError ? "#8e2d2d" : "#556070";
+}
+
+function handleUpdateToggle() {
+  const isUpdate = Array.from(elements.modeInputs || []).some((input) => input.checked && input.value === "update");
+  if (elements.submissionIdRow) {
+    elements.submissionIdRow.hidden = !isUpdate;
+  }
+  if (elements.submissionIdInput) {
+    elements.submissionIdInput.required = isUpdate;
+    if (!isUpdate) {
+      elements.submissionIdInput.value = "";
+    }
+  }
+}
+
+function createSubmissionId() {
+  const nextNumber = state.submissions
+    .map((submission) => Number.parseInt(String(submission.id || "").split("-").pop() || "", 10))
+    .filter((value) => Number.isInteger(value) && value >= 0)
+    .reduce((max, value) => Math.max(max, value), -1) + 1;
+
+  return `VE-CTIS-2026-${String(nextNumber).padStart(3, "0")}`;
+}
+
+function mergeSubmissionUpdate(existingSubmission, incomingSubmission) {
+  const merged = { ...existingSubmission, ...incomingSubmission };
+  Object.entries(incomingSubmission).forEach(([key, value]) => {
+    if (key === "id" || key === "createdAt" || key === "updatedAt") {
+      return;
+    }
+    if (typeof value === "string" && value.trim() === "") {
+      merged[key] = existingSubmission?.[key] ?? "";
+    }
+    if (value === null || value === undefined) {
+      merged[key] = existingSubmission?.[key];
+    }
+  });
+  return merged;
+}
+
+function parseOptionalNumber(value) {
+  const text = value?.toString().trim();
+  if (!text) {
+    return null;
+  }
+  const parsed = Number(text);
+  return Number.isNaN(parsed) ? null : parsed;
 }
 
 function setRequired(enabled) {
@@ -197,11 +208,11 @@ function render() {
       <article class="card">
         <h3>${store.escapeHtml(submission.title)}</h3>
         <div class="meta-row">
+          <span><strong>ID:</strong> ${store.escapeHtml(submission.id)}</span>
           <span><strong>Authors:</strong> ${store.escapeHtml(submission.authors)}</span>
           <span><strong>School:</strong> ${store.escapeHtml(submission.schoolName)}</span>
         </div>
         <p>${store.escapeHtml(submission.shortAbstract || "")}</p>
-        <p class="muted">Background: ${store.escapeHtml(store.truncate(submission.background || "", 180))}</p>
         ${submission.attachmentUrl ? `<a class="button button--ghost" href="${submission.attachmentUrl}" target="_blank" rel="noopener">Download attachment</a>` : ""}
       </article>
     `

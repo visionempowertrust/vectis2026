@@ -1,5 +1,5 @@
 ﻿(function () {
-  const STORAGE_KEY = "ctis-2026-review-portal";
+  const STORAGE_KEY = "vectis-2026-shared-state-v2";
   const DB_NAME = "ctis-2026-attachments";
   const DB_VERSION = 1;
   const ATTACH_STORE = "attachments";
@@ -58,10 +58,49 @@
     }
   }
 
+  async function loadStateRemoteDetailed() {
+    if (!supabase) {
+      return { ok: false, error: "Supabase client unavailable", state: null };
+    }
+
+    const { data, error } = await supabase.storage.from(SUPABASE_BUCKET).download("state/state.json");
+    if (error || !data) {
+      return {
+        ok: false,
+        error: error?.message || "Unable to download state/state.json",
+        state: null
+      };
+    }
+
+    try {
+      const text = await data.text();
+      const parsed = JSON.parse(text);
+      return {
+        ok: true,
+        error: null,
+        state: {
+          submissions: parsed.submissions || [],
+          reviewers: parsed.reviewers || [],
+          assignments: parsed.assignments || [],
+          reviews: parsed.reviews || []
+        }
+      };
+    } catch (parseError) {
+      return {
+        ok: false,
+        error: parseError?.message || "Invalid JSON in state/state.json",
+        state: null
+      };
+    }
+  }
+
   async function saveStateRemote(state) {
     if (!supabase) return;
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-    await supabase.storage.from(SUPABASE_BUCKET).upload("state/state.json", blob, { upsert: true });
+    const { error } = await supabase.storage.from(SUPABASE_BUCKET).upload("state/state.json", blob, { upsert: true });
+    if (error) {
+      throw error;
+    }
   }
 
   // IndexedDB attachment storage (local cache for older records)
@@ -108,8 +147,8 @@
 
   async function uploadSubmissionRemote(submission, attachmentFile) {
     if (!supabase) throw new Error("Supabase client unavailable");
-    let attachmentUrl = null;
-    let attachmentPath = null;
+    let attachmentUrl = submission.attachmentUrl || null;
+    let attachmentPath = submission.attachmentPath || null;
 
     if (attachmentFile) {
       attachmentPath = `attachments/${submission.id}/${attachmentFile.name}`;
@@ -142,6 +181,43 @@
       })
     );
     return results.filter(Boolean).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  }
+
+  async function listSubmissionsRemoteDetailed() {
+    if (!supabase) {
+      return { ok: false, error: "Supabase client unavailable", submissions: [], filesFound: 0 };
+    }
+
+    const { data, error } = await supabase.storage.from(SUPABASE_BUCKET).list("submissions", { limit: 1000 });
+    if (error) {
+      return {
+        ok: false,
+        error: error.message || "Unable to list submissions/",
+        submissions: [],
+        filesFound: 0
+      };
+    }
+
+    const results = await Promise.all(
+      (data || []).map(async (item) => {
+        const { data: fileData, error: dlError } = await supabase.storage.from(SUPABASE_BUCKET).download(`submissions/${item.name}`);
+        if (dlError || !fileData) {
+          return null;
+        }
+        try {
+          return JSON.parse(await fileData.text());
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    return {
+      ok: true,
+      error: null,
+      submissions: results.filter(Boolean).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)),
+      filesFound: (data || []).length
+    };
   }
 
   async function downloadAttachment(path) {
@@ -217,16 +293,34 @@
     reader.readAsText(file);
   }
 
+  function seedAssignmentsIfEmpty(state) {
+    return state;
+  }
+
+  function resetState() {
+    const nextState = structuredClone(demoState);
+    saveState(nextState);
+    return nextState;
+  }
+
   window.PortalStore = {
     STORAGE_KEY,
     loadState,
     saveState,
     loadStateRemote,
     saveStateRemote,
+    average,
+    truncate,
+    escapeHtml,
+    renderCollection,
+    seedAssignmentsIfEmpty,
+    resetState,
     saveAttachmentLocal,
     getAttachmentLocal,
     uploadSubmissionRemote,
     listSubmissionsRemote,
+    listSubmissionsRemoteDetailed,
+    loadStateRemoteDetailed,
     downloadAttachment
   };
 })();

@@ -42,8 +42,17 @@
     </section>
   </header>
 
+  <main id="main-content" class="layout">
+    <section class="panel">
+      <div class="panel__heading">
+        <h2>Supabase Debug</h2>
+        <span class="pill">Read status</span>
+      </div>
+      <div id="debug-status" class="stack muted"></div>
+    </section>
+
     <section class="dashboard-grid dashboard-grid--review">
-      <article class="panel">
+      <article class="panel panel--full">
         <div class="panel__heading">
           <h2>Ranked papers</h2>
           <span class="pill" id="rankings-summary">0 ranked</span>
@@ -53,6 +62,7 @@
             <thead>
               <tr>
                 <th>Rank</th>
+                <th>Submission ID</th>
                 <th>Title</th>
                 <th>School</th>
                 <th>Score</th>
@@ -63,14 +73,6 @@
             <tbody id="rankings-body"></tbody>
           </table>
         </div>
-      </article>
-
-      <article class="panel">
-        <div class="panel__heading">
-          <h2>Review load</h2>
-          <span class="pill" id="assignment-summary">0 assignments</span>
-        </div>
-        <div id="load-list" class="stack"></div>
       </article>
 
       <article class="panel">
@@ -88,14 +90,6 @@
               Email
               <input name="email" type="email" required>
             </label>
-            <label>
-              Expertise
-              <input name="expertise" type="text" placeholder="Accessible pedagogy, CT, assessment">
-            </label>
-            <label>
-              Maximum papers
-              <input name="capacity" type="number" min="1" step="1" value="3" required>
-            </label>
           </div>
           <button class="button" type="submit">Add reviewer</button>
         </form>
@@ -103,17 +97,8 @@
 
       <article class="panel">
         <div class="panel__heading">
-          <h2>Reviewer roster</h2>
-          <span class="pill" id="reviewers-summary">0 active</span>
-        </div>
-        <div id="reviewer-list" class="stack"></div>
-      </article>
-
-      <article class="panel">
-        <div class="panel__heading">
           <h2>Assign reviewers</h2>
-          <span class="pill">Target 2 per paper</span>
-        </div>
+		</div>
         <form id="assignment-form" class="form stack">
           <label>
             Submission
@@ -132,14 +117,6 @@
 
       <article class="panel">
         <div class="panel__heading">
-          <h2>Assignment matrix</h2>
-          <span class="pill" id="matrix-summary">0 mapped</span>
-        </div>
-        <div id="assignment-list" class="stack"></div>
-      </article>
-
-      <article class="panel">
-        <div class="panel__heading">
           <h2>Enter review</h2>
           <span class="pill">Scores + comments</span>
         </div>
@@ -154,24 +131,112 @@
               <select name="submissionId" id="review-submission" required></select>
             </label>
             <label>
-              Relevance
-              <input name="relevance" type="number" min="1" max="10" step="1" required>
+              Objective
+              <select name="objective" required>
+                <option value="">Choose score</option>
+                <option value="1">1</option>
+                <option value="0.5">0.5</option>
+                <option value="0">0</option>
+              </select>
             </label>
             <label>
-              Clarity
-              <input name="clarity" type="number" min="1" max="10" step="1" required>
+              Resources
+              <select name="resources" required>
+                <option value="">Choose score</option>
+                <option value="1">1</option>
+                <option value="0.5">0.5</option>
+                <option value="0">0</option>
+              </select>
             </label>
             <label>
-              Implementation detail
-              <input name="implementation" type="number" min="1" max="10" step="1" required>
+              CT Alignment
+              <select name="ctAlignment" required>
+                <option value="">Choose score</option>
+                <option value="1">1</option>
+                <option value="0.5">0.5</option>
+                <option value="0">0</option>
+              </select>
             </label>
             <label>
-              Impact
-              <input name="impact" type="number" min="1" max="10" step="1" required>
+              Evidence
+              <select name="evidence" required>
+                <option value="">Choose score</option>
+                <option value="1">1</option>
+                <option value="0.5">0.5</option>
+                <option value="0">0</option>
+              </select>
             </label>
             <label>
-              Accessibility and inclusion
-              <input name="inclusion" type="number" min="1" max="10" step="1" required>
+              Challenges
+              <select name="challenges" required>
+                <option value="">Choose score</option>
+                <option value="1">1</option>
+                <option value="0.5">0.5</option>
+                <option value="0">0</option>
+              </select>
+            </label>
+            <label>
+              In Pictures
+              <select name="inPictures" required>
+                <option value="">Choose score</option>
+                <option value="1">1</option>
+                <option value="0.5">0.5</option>
+                <option value="0">0</option>
+              </select>
+            </label>
+            <label>
+              Student Experiences
+              <select name="studentExperiences" required>
+                <option value="">Choose score</option>
+                <option value="1">1</option>
+                <option value="0.5">0.5</option>
+                <option value="0">0</option>
+              </select>
+            </label>
+            <label>
+              Decomposition
+              <select name="decomposition" required>
+                <option value="">Choose score</option>
+                <option value="1">1</option>
+                <option value="0.5">0.5</option>
+                <option value="0">0</option>
+              </select>
+            </label>
+            <label>
+              Algorithmic Thinking
+              <select name="algorithmicThinking" required>
+                <option value="">Choose score</option>
+                <option value="1">1</option>
+                <option value="0.5">0.5</option>
+                <option value="0">0</option>
+              </select>
+            </label>
+            <label>
+              Pattern Recognition
+              <select name="patternRecognition" required>
+                <option value="">Choose score</option>
+                <option value="1">1</option>
+                <option value="0.5">0.5</option>
+                <option value="0">0</option>
+              </select>
+            </label>
+            <label>
+              Abstraction
+              <select name="abstraction" required>
+                <option value="">Choose score</option>
+                <option value="1">1</option>
+                <option value="0.5">0.5</option>
+                <option value="0">0</option>
+              </select>
+            </label>
+            <label>
+              Potential
+              <select name="potential" required>
+                <option value="">Choose score</option>
+                <option value="1">1</option>
+                <option value="0.5">0.5</option>
+                <option value="0">0</option>
+              </select>
             </label>
             <label>
               Recommendation
@@ -193,34 +258,10 @@
 
       <article class="panel">
         <div class="panel__heading">
-          <h2>Completed reviews</h2>
-          <span class="pill" id="completed-summary">0 recorded</span>
+          <h2>Review Status</h2>
+          <span class="pill" id="assignment-summary">0 assignments</span>
         </div>
-        <div id="review-list" class="stack"></div>
-      </article>
-
-      <article class="panel">
-        <div class="panel__heading">
-          <h2>Shortlisted abstracts</h2>
-          <span class="pill">Top 5</span>
-        </div>
-        <div id="shortlist-list" class="stack"></div>
-      </article>
-
-      <article class="panel">
-        <div class="panel__heading">
-          <h2>Data tools</h2>
-          <span class="pill">Local backup</span>
-        </div>
-        <div class="stack">
-          <p class="muted">This review portal reads the same event data as the submission portal and stores it in your browser.</p>
-          <div class="button-row">
-            <button id="export-data" class="button button--secondary" type="button">Export JSON</button>
-            <label class="button button--ghost" for="import-data">Import JSON</label>
-            <input id="import-data" type="file" accept="application/json" hidden>
-            <button id="reset-data" class="button button--danger" type="button">Reset demo data</button>
-          </div>
-        </div>
+        <div id="load-list" class="stack"></div>
       </article>
     </section>
   </main>
