@@ -353,7 +353,7 @@ function summarizeRecommendations(reviews) {
 
   const counts = new Map();
   reviews.forEach((review) => {
-    const key = review.recommendation || "No recommendation";
+    const key = review.recommendation || "No recommendation at all";
     counts.set(key, (counts.get(key) || 0) + 1);
   });
 
