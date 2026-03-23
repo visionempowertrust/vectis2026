@@ -43,14 +43,6 @@
   </header>
 
   <main id="main-content" class="layout">
-    <section class="panel">
-      <div class="panel__heading">
-        <h2>Supabase Debug</h2>
-        <span class="pill">Read status</span>
-      </div>
-      <div id="debug-status" class="stack muted"></div>
-    </section>
-
     <section class="dashboard-grid dashboard-grid--review">
       <article class="panel panel--full">
         <div class="panel__heading">
@@ -67,6 +59,7 @@
                 <th>School</th>
                 <th>Score</th>
                 <th>Reviews</th>
+                <th>Recommendation</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -271,6 +264,16 @@
       <p></p>
     </div>
   </template>
+
+  <dialog id="review-details-dialog" class="details-dialog">
+    <div class="details-dialog__panel">
+      <div class="panel__heading">
+        <h2 id="review-details-title">Review details</h2>
+        <button id="review-details-close" class="button button--ghost" type="button">Close</button>
+      </div>
+      <div id="review-details-body" class="stack"></div>
+    </div>
+  </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./shared.js"></script>

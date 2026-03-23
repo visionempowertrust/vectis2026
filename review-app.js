@@ -5,35 +5,27 @@ const elements = {
   submissionCount: document.querySelector("#submission-count"),
   reviewerCount: document.querySelector("#reviewer-count"),
   reviewCount: document.querySelector("#review-count"),
-  debugStatus: document.querySelector("#debug-status"),
   rankingsSummary: document.querySelector("#rankings-summary"),
   assignmentSummary: document.querySelector("#assignment-summary"),
   reviewerForm: document.querySelector("#reviewer-form"),
   assignmentForm: document.querySelector("#assignment-form"),
   reviewForm: document.querySelector("#review-form"),
-  reviewerList: document.querySelector("#reviewer-list"),
-  assignmentList: document.querySelector("#assignment-list"),
-  reviewList: document.querySelector("#review-list"),
   rankingsBody: document.querySelector("#rankings-body"),
-  shortlistList: document.querySelector("#shortlist-list"),
   loadList: document.querySelector("#load-list"),
-  reviewersSummary: document.querySelector("#reviewers-summary"),
-  matrixSummary: document.querySelector("#matrix-summary"),
-  completedSummary: document.querySelector("#completed-summary"),
   assignmentSubmission: document.querySelector("#assignment-submission"),
   assignmentReviewer: document.querySelector("#assignment-reviewer"),
   reviewerSelect: document.querySelector("#reviewer-select"),
   reviewSubmission: document.querySelector("#review-submission"),
-  exportData: document.querySelector("#export-data"),
-  importData: document.querySelector("#import-data"),
-  resetData: document.querySelector("#reset-data")
+  reviewDetailsDialog: document.querySelector("#review-details-dialog"),
+  reviewDetailsTitle: document.querySelector("#review-details-title"),
+  reviewDetailsBody: document.querySelector("#review-details-body"),
+  reviewDetailsClose: document.querySelector("#review-details-close")
 };
 
 bindEvents();
 loadRemoteState();
 
 async function loadRemoteState() {
-  const debugMessages = [];
   const remoteState = await store.loadStateRemoteDetailed();
   if (remoteState.ok && remoteState.state) {
     state = remoteState.state;
@@ -42,19 +34,7 @@ async function loadRemoteState() {
     state = store.loadState();
   }
 
-  if (remoteState.ok) {
-    debugMessages.push(`State file loaded: ${state.submissions.length} submissions, ${state.reviewers.length} reviewers, ${state.reviews.length} reviews.`);
-  } else {
-    debugMessages.push(`State file read failed: ${remoteState.error}`);
-  }
-
   const remoteSubmissions = await store.listSubmissionsRemoteDetailed();
-  if (remoteSubmissions.ok) {
-    debugMessages.push(`Submission folder listed: ${remoteSubmissions.filesFound} files found, ${remoteSubmissions.submissions.length} valid submission records parsed.`);
-  } else {
-    debugMessages.push(`Submission folder read failed: ${remoteSubmissions.error}`);
-  }
-
   if (remoteSubmissions.submissions.length) {
     const byId = new Map((state.submissions || []).map((submission) => [submission.id, submission]));
     remoteSubmissions.submissions.forEach((submission) => {
@@ -65,19 +45,8 @@ async function loadRemoteState() {
     );
   }
 
-  debugMessages.push(`Review portal final submission count: ${state.submissions.length}.`);
-
   store.saveState(state);
-  renderDebugStatus(debugMessages);
   render();
-}
-
-function renderDebugStatus(messages) {
-  if (!elements.debugStatus) {
-    return;
-  }
-
-  elements.debugStatus.innerHTML = messages.map((message) => `<p>${store.escapeHtml(message)}</p>`).join("");
 }
 
 function bindEvents() {
@@ -86,6 +55,8 @@ function bindEvents() {
   elements.reviewForm.addEventListener("submit", handleReviewSave);
   document.querySelector("#auto-assign").addEventListener("click", autoAssignMissingReviews);
   elements.reviewerSelect.addEventListener("change", populateReviewSubmissionOptions);
+  elements.rankingsBody.addEventListener("click", handleRankingReviewClick);
+  elements.reviewDetailsClose?.addEventListener("click", () => elements.reviewDetailsDialog?.close());
 }
 
 function handleReviewerSave(event) {
@@ -160,7 +131,7 @@ function handleReviewSave(event) {
     reviewerId,
     submissionId,
     scores,
-    totalScore: store.average(Object.values(scores)),
+    totalScore: sumScores(Object.values(scores)),
     recommendation: formData.get("recommendation")?.toString(),
     comments: formData.get("comments")?.toString().trim(),
     updatedAt: new Date().toISOString()
@@ -251,67 +222,6 @@ function render() {
   populateReviewSubmissionOptions();
 }
 
-function renderReviewerList() {
-  store.renderCollection(elements.reviewerList, state.reviewers, "No reviewers yet. Add your program committee members here.", (reviewer) => {
-    const assigned = getAssignmentsForReviewer(reviewer.id).length;
-    const completed = state.reviews.filter((review) => review.reviewerId === reviewer.id).length;
-    return `
-      <article class="card">
-        <h3>${store.escapeHtml(reviewer.name)}</h3>
-        <div class="meta-row">
-          <span><strong>Email:</strong> ${store.escapeHtml(reviewer.email)}</span>
-          <span><strong>Expertise:</strong> ${store.escapeHtml(reviewer.expertise || "General review")}</span>
-        </div>
-        <div class="meta-row">
-          <span><strong>Load:</strong> ${assigned}/${reviewer.capacity}</span>
-          <span><strong>Completed:</strong> ${completed}</span>
-        </div>
-      </article>
-    `;
-  });
-}
-
-function renderAssignmentList() {
-  store.renderCollection(elements.assignmentList, state.submissions, "Assignments will appear here after you map reviewers to papers.", (submission) => {
-    const assignments = getAssignmentsForSubmission(submission.id);
-    const chips = assignments.length
-      ? assignments.map((assignment) => {
-          const reviewer = findReviewer(assignment.reviewerId);
-          const reviewed = state.reviews.some((review) => review.reviewerId === assignment.reviewerId && review.submissionId === submission.id);
-          return `<span class="status ${reviewed ? "status--good" : "status--warn"}">${store.escapeHtml(reviewer?.name || "Unknown")} ${reviewed ? "reviewed" : "assigned"}</span>`;
-        }).join(" ")
-      : `<span class="status status--muted">Unassigned</span>`;
-
-    return `
-      <article class="card">
-        <h3>${store.escapeHtml(submission.title)}</h3>
-        <p class="muted">${store.escapeHtml(submission.schoolName)}</p>
-        <div class="meta-row">${chips}</div>
-        ${submission.attachmentUrl ? `<a class="button button--ghost" href="${submission.attachmentUrl}" target="_blank" rel="noopener">Download attachment</a>` : ""}
-      </article>
-    `;
-  });
-}
-
-function renderReviewList() {
-  const sortedReviews = [...state.reviews].sort((left, right) => new Date(right.updatedAt) - new Date(left.updatedAt));
-  store.renderCollection(elements.reviewList, sortedReviews, "Completed reviews will appear here.", (review) => {
-    const reviewer = findReviewer(review.reviewerId);
-    const submission = findSubmission(review.submissionId);
-    return `
-      <article class="card">
-        <h3>${store.escapeHtml(submission?.title || "Unknown submission")}</h3>
-        <div class="meta-row">
-          <span><strong>Reviewer:</strong> ${store.escapeHtml(reviewer?.name || "Unknown reviewer")}</span>
-          <span><strong>Average:</strong> ${review.totalScore.toFixed(1)}</span>
-          <span><strong>Recommendation:</strong> ${store.escapeHtml(review.recommendation)}</span>
-        </div>
-        <p>${store.escapeHtml(review.comments)}</p>
-      </article>
-    `;
-  });
-}
-
 function renderDashboard() {
   const ranked = getRankedSubmissions();
   elements.rankingsSummary.textContent = `${ranked.length} ranked`;
@@ -323,11 +233,12 @@ function renderDashboard() {
           <td>${store.escapeHtml(entry.submission.title)}</td>
           <td>${store.escapeHtml(entry.submission.schoolName)}</td>
           <td>${entry.metrics.averageScore ? entry.metrics.averageScore.toFixed(1) : "-"}</td>
-          <td>${entry.metrics.reviewCount}</td>
+          <td>${renderReviewCountLink(entry.submission.id, entry.metrics.reviewCount)}</td>
+          <td>${store.escapeHtml(entry.metrics.recommendationSummary)}</td>
           <td><span class="status ${statusClass(entry.metrics)}">${statusText(entry.metrics)}</span></td>
         </tr>
       `).join("")
-    : `<tr><td colspan="7">No ranked papers yet. Add reviews to see the leaderboard.</td></tr>`;
+    : `<tr><td colspan="8">No ranked papers yet. Add reviews to see the leaderboard.</td></tr>`;
 
   store.renderCollection(elements.loadList, state.reviewers, "Reviewer load appears here after you add the committee.", (reviewer) => {
     const assignments = getAssignmentsForReviewer(reviewer.id).length;
@@ -393,17 +304,26 @@ function getRankedSubmissions() {
 }
 
 function getSubmissionMetrics(submissionId) {
-  const reviews = state.reviews.filter((review) => review.submissionId === submissionId);
+  const reviews = getReviewsForSubmission(submissionId);
   const assignments = getAssignmentsForSubmission(submissionId);
   return {
     reviewCount: reviews.length,
     assignmentCount: assignments.length,
-    averageScore: reviews.length ? store.average(reviews.map((review) => review.totalScore)) : 0
+    averageScore: reviews.length ? store.average(reviews.map((review) => review.totalScore)) : 0,
+    recommendationSummary: summarizeRecommendations(reviews)
   };
+}
+
+function sumScores(values) {
+  return values.reduce((sum, value) => sum + value, 0);
 }
 
 function getAssignmentsForSubmission(submissionId) {
   return state.assignments.filter((entry) => entry.submissionId === submissionId);
+}
+
+function getReviewsForSubmission(submissionId) {
+  return state.reviews.filter((entry) => entry.submissionId === submissionId);
 }
 
 function getAssignmentsForReviewer(reviewerId) {
@@ -416,6 +336,95 @@ function findReviewer(reviewerId) {
 
 function findSubmission(submissionId) {
   return state.submissions.find((submission) => submission.id === submissionId);
+}
+
+function renderReviewCountLink(submissionId, reviewCount) {
+  if (!reviewCount) {
+    return "0";
+  }
+
+  return `<button class="button-link" type="button" data-review-submission-id="${store.escapeHtml(submissionId)}">${reviewCount}</button>`;
+}
+
+function summarizeRecommendations(reviews) {
+  if (!reviews.length) {
+    return "-";
+  }
+
+  const counts = new Map();
+  reviews.forEach((review) => {
+    const key = review.recommendation || "No recommendation";
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+
+  return Array.from(counts.entries())
+    .sort((left, right) => right[1] - left[1])
+    .map(([label, count]) => `${label} (${count})`)
+    .join(", ");
+}
+
+function handleRankingReviewClick(event) {
+  const trigger = event.target.closest("[data-review-submission-id]");
+  if (!(trigger instanceof HTMLElement)) {
+    return;
+  }
+
+  const submissionId = trigger.dataset.reviewSubmissionId;
+  if (!submissionId) {
+    return;
+  }
+
+  openReviewDetails(submissionId);
+}
+
+function openReviewDetails(submissionId) {
+  const submission = findSubmission(submissionId);
+  const reviews = getReviewsForSubmission(submissionId);
+
+  if (!elements.reviewDetailsDialog || !elements.reviewDetailsBody || !elements.reviewDetailsTitle) {
+    return;
+  }
+
+  elements.reviewDetailsTitle.textContent = submission?.title
+    ? `Review details: ${submission.title}`
+    : "Review details";
+
+  if (!reviews.length) {
+    elements.reviewDetailsBody.innerHTML = `<div class="empty-state"><p>No reviews available for this submission yet.</p></div>`;
+    elements.reviewDetailsDialog.showModal();
+    return;
+  }
+
+  elements.reviewDetailsBody.innerHTML = reviews.map((review) => {
+    const reviewer = findReviewer(review.reviewerId);
+    return `
+      <article class="card">
+        <h3>${store.escapeHtml(reviewer?.name || "Unknown reviewer")}</h3>
+        <div class="meta-row">
+          <span><strong>Recommendation:</strong> ${store.escapeHtml(review.recommendation || "-")}</span>
+          <span><strong>Total score:</strong> ${review.totalScore?.toFixed(1) || "0.0"}</span>
+        </div>
+        <div class="score-grid">
+          ${Object.entries(review.scores || {}).map(([label, value]) => `
+            <div class="score-grid__item">
+              <strong>${store.escapeHtml(formatScoreLabel(label))}</strong>
+              <span>${store.escapeHtml(String(value))}</span>
+            </div>
+          `).join("")}
+        </div>
+        <p><strong>Reviewer comments:</strong> ${store.escapeHtml(review.comments || "-")}</p>
+      </article>
+    `;
+  }).join("");
+
+  elements.reviewDetailsDialog.showModal();
+}
+
+function formatScoreLabel(label) {
+  return label
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (value) => value.toUpperCase())
+    .trim();
 }
 
 function statusText(metrics) {
