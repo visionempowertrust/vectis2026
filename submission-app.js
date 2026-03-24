@@ -28,7 +28,6 @@ const requiredFields = [
   "schoolAddress",
   "emails",
   "theme",
-  "shortAbstract"
 ];
 
 loadAndRender();
@@ -87,7 +86,6 @@ async function handleSubmissionSave(event) {
     teacherCount: parseOptionalNumber(formData.get("teacherCount")),
     studentCount: parseOptionalNumber(formData.get("studentCount")),
     grades: formData.get("grades")?.toString().trim(),
-    shortAbstract: formData.get("shortAbstract")?.toString().trim(),
     attachmentName: pendingAttachmentName || existingSubmission?.attachmentName || null,
     attachmentUrl: existingSubmission?.attachmentUrl || null,
     attachmentPath: existingSubmission?.attachmentPath || null
@@ -291,7 +289,6 @@ function render() {
           <span><strong>School:</strong> ${store.escapeHtml(submission.schoolName)}</span>
           <span><strong>Theme:</strong> ${store.escapeHtml(submission.theme || "-")}</span>
         </div>
-        <p>${store.escapeHtml(submission.shortAbstract || "")}</p>
         ${submission.attachmentUrl ? `<a class="button button--ghost" href="${submission.attachmentUrl}" target="_blank" rel="noopener">Download attachment</a>` : ""}
       </article>
     `
