@@ -230,6 +230,7 @@ function renderDashboard() {
         <tr>
           <td>${index + 1}</td>
           <td>${store.escapeHtml(entry.submission.id || "-")}</td>
+          <td>${store.escapeHtml(entry.submission.submissionCategory || "-")}</td>
           <td>${store.escapeHtml(entry.submission.title)}</td>
           <td>${store.escapeHtml(entry.submission.schoolName)}</td>
           <td>${entry.metrics.averageScore ? entry.metrics.averageScore.toFixed(1) : "-"}</td>
@@ -238,17 +239,33 @@ function renderDashboard() {
           <td><span class="status ${statusClass(entry.metrics)}">${statusText(entry.metrics)}</span></td>
         </tr>
       `).join("")
-    : `<tr><td colspan="8">No ranked papers yet. Add reviews to see the leaderboard.</td></tr>`;
+    : `<tr><td colspan="9">No ranked papers yet. Add reviews to see the leaderboard.</td></tr>`;
 
   store.renderCollection(elements.loadList, state.reviewers, "Reviewer load appears here after you add the committee.", (reviewer) => {
-    const assignments = getAssignmentsForReviewer(reviewer.id).length;
-    const completed = state.reviews.filter((review) => review.reviewerId === reviewer.id).length;
+    const assignments = getAssignmentsForReviewer(reviewer.id);
+    const completedAssignments = assignments.filter((assignment) =>
+      state.reviews.some((review) => review.reviewerId === reviewer.id && review.submissionId === assignment.submissionId)
+    );
+    const pendingAssignments = assignments.filter((assignment) =>
+      !state.reviews.some((review) => review.reviewerId === reviewer.id && review.submissionId === assignment.submissionId)
+    );
     return `
       <article class="card">
         <h3>${store.escapeHtml(reviewer.name)}</h3>
         <div class="meta-row">
-          <span><strong>Assigned:</strong> ${assignments}/${reviewer.capacity}</span>
-          <span><strong>Completed:</strong> ${completed}</span>
+          <span><strong>Assigned:</strong> ${assignments.length}/${reviewer.capacity}</span>
+          <span><strong>Completed:</strong> ${completedAssignments.length}</span>
+          <span><strong>Pending:</strong> ${pendingAssignments.length}</span>
+        </div>
+        <div class="stack">
+          <div>
+            <strong>Completed papers</strong>
+            ${renderSubmissionStatusList(completedAssignments, "No completed reviews yet.")}
+          </div>
+          <div>
+            <strong>Pending papers</strong>
+            ${renderSubmissionStatusList(pendingAssignments, "No pending reviews.")}
+          </div>
         </div>
       </article>
     `;
@@ -425,6 +442,21 @@ function formatScoreLabel(label) {
     .replace(/([A-Z])/g, " $1")
     .replace(/^./, (value) => value.toUpperCase())
     .trim();
+}
+
+function renderSubmissionStatusList(assignments, emptyMessage) {
+  if (!assignments.length) {
+    return `<p class="muted">${store.escapeHtml(emptyMessage)}</p>`;
+  }
+
+  return `
+    <ul class="status-list">
+      ${assignments.map((assignment) => {
+        const submission = findSubmission(assignment.submissionId);
+        return `<li>${store.escapeHtml(submission?.id || "-")} - ${store.escapeHtml(submission?.title || "Unknown submission")}</li>`;
+      }).join("")}
+    </ul>
+  `;
 }
 
 function statusText(metrics) {

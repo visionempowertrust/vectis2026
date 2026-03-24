@@ -252,6 +252,30 @@ select {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.choice-group {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.choice-group legend {
+  padding: 0 6px;
+  font-weight: 700;
+}
+
+.choice-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.choice-option input {
+  width: auto;
+}
+
 .form label {
   display: grid;
   gap: 8px;
@@ -411,6 +435,16 @@ th {
   text-align: center;
   color: var(--muted);
   background: rgba(249, 242, 223, 0.45);
+}
+
+.status-list {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  color: var(--muted);
+}
+
+.status-list li + li {
+  margin-top: 6px;
 }
 
 .details-dialog {

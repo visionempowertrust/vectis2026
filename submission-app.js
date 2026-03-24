@@ -21,6 +21,7 @@ elements.uploadInput?.addEventListener("change", handleUpload);
 elements.modeInputs?.forEach((input) => input.addEventListener("change", handleUpdateToggle));
 
 const requiredFields = [
+  "submissionCategory",
   "title",
   "authors",
   "schoolName",
@@ -79,6 +80,7 @@ async function handleSubmissionSave(event) {
     schoolName: formData.get("schoolName")?.toString().trim(),
     schoolAddress: formData.get("schoolAddress")?.toString().trim(),
     emails: formData.get("emails")?.toString().trim(),
+    submissionCategory: formData.get("submissionCategory")?.toString().trim(),
     theme: formData.get("theme")?.toString().trim(),
     implementationStart: formData.get("implementationStart")?.toString().trim(),
     weeklyPeriods: parseOptionalNumber(formData.get("weeklyPeriods")),
@@ -109,6 +111,7 @@ async function handleSubmissionSave(event) {
       false
     );
     form.reset();
+    clearSubmissionCategorySelection();
     elements.modeInputs?.forEach((input) => {
       input.checked = input.value === "new";
     });
@@ -254,9 +257,18 @@ function parseOptionalNumber(value) {
 
 function setRequired(enabled) {
   requiredFields.forEach((name) => {
-    const input = elements.submissionForm.querySelector(`[name="${name}"]`);
-    if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement || input instanceof HTMLSelectElement) {
-      input.required = enabled && !attachmentMode;
+    elements.submissionForm.querySelectorAll(`[name="${name}"]`).forEach((input) => {
+      if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement || input instanceof HTMLSelectElement) {
+        input.required = enabled && !attachmentMode;
+      }
+    });
+  });
+}
+
+function clearSubmissionCategorySelection() {
+  elements.submissionForm.querySelectorAll('[name="submissionCategory"]').forEach((input) => {
+    if (input instanceof HTMLInputElement) {
+      input.checked = false;
     }
   });
 }
@@ -274,6 +286,7 @@ function render() {
         <h3>${store.escapeHtml(submission.title)}</h3>
         <div class="meta-row">
           <span><strong>ID:</strong> ${store.escapeHtml(submission.id)}</span>
+          <span><strong>Type:</strong> ${store.escapeHtml(submission.submissionCategory || "-")}</span>
           <span><strong>Authors:</strong> ${store.escapeHtml(submission.authors)}</span>
           <span><strong>School:</strong> ${store.escapeHtml(submission.schoolName)}</span>
           <span><strong>Theme:</strong> ${store.escapeHtml(submission.theme || "-")}</span>
