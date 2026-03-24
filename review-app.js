@@ -453,7 +453,10 @@ function renderSubmissionStatusList(assignments, emptyMessage) {
     <ul class="status-list">
       ${assignments.map((assignment) => {
         const submission = findSubmission(assignment.submissionId);
-        return `<li>${store.escapeHtml(submission?.id || "-")} - ${store.escapeHtml(submission?.title || "Unknown submission")}</li>`;
+        const submissionId = submission?.attachmentUrl
+          ? `<a href="${store.escapeHtml(submission.attachmentUrl)}" target="_blank" rel="noopener">${store.escapeHtml(submission?.id || "-")}</a>`
+          : store.escapeHtml(submission?.id || "-");
+        return `<li>${submissionId} - ${store.escapeHtml(submission?.title || "Unknown submission")}</li>`;
       }).join("")}
     </ul>
   `;
