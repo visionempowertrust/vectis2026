@@ -116,7 +116,17 @@ async function handleSubmissionSave(event) {
     handleUpdateToggle();
     setRequired(true);
     store.saveState(state);
-    await store.saveStateRemote(state);
+    try {
+      await store.saveStateRemote(state);
+    } catch (stateError) {
+      const details = stateError?.message || stateError?.error_description || stateError?.name || "Unknown sync error";
+      setUploadStatus(
+        isUpdate
+          ? `Thank you. Submission ${submissionId} has been updated, but shared sync failed: ${details}`
+          : `Thank you for the submission. Your submission ID is ${submissionId}. Please note it down. Shared sync failed: ${details}`,
+        true
+      );
+    }
     try {
       await sendSubmissionEmail(saved, isUpdate);
     } catch (emailError) {
@@ -131,7 +141,10 @@ async function handleSubmissionSave(event) {
     render();
   } catch (error) {
     const details = error?.message || error?.error_description || error?.name || "Unknown error";
-    setUploadStatus(`Upload failed: ${details}`, true);
+    const message = details === "Failed to fetch"
+      ? "Upload failed: Could not reach Supabase. Please check your internet connection or Supabase access and try again."
+      : `Upload failed: ${details}`;
+    setUploadStatus(message, true);
   }
 }
 

@@ -43,20 +43,21 @@
         </div>
         <form id="submission-form" class="form stack">
           <fieldset class="choice-group">
-            <legend>Submission Type</legend>
+            <legend>Submission Mode</legend>
             <label class="choice-option">
-              <input name="submissionMode" type="radio" value="new" required>New
+              <input name="submissionMode" type="radio" value="new" checked required>
+              New
             </label>
             <label class="choice-option">
-              <input name="submissionMode" type="radio" value="update" required>Update
-
+              <input name="submissionMode" type="radio" value="update" required>
+              Update
             </label>
-             <div id="submission-id-row" hidden>
-			            <label>
-			              Submission ID (for Updates)
-			              <input id="submission-id" name="submissionId" type="text" placeholder="VE-CTIS-2026-123" />
-			            </label>
-          </div>
+            <div id="submission-id-row" hidden>
+              <label>
+                Submission ID (for Updates)
+                <input id="submission-id" name="submissionId" type="text" placeholder="VE-CTIS-2026-123" />
+              </label>
+            </div>
           </fieldset>
 
           <fieldset class="choice-group">
