@@ -12,6 +12,8 @@ const elements = {
   reviewForm: document.querySelector("#review-form"),
   rankingsBody: document.querySelector("#rankings-body"),
   loadList: document.querySelector("#load-list"),
+  unassignedSummary: document.querySelector("#unassigned-summary"),
+  unassignedList: document.querySelector("#unassigned-list"),
   assignmentSubmission: document.querySelector("#assignment-submission"),
   assignmentReviewer: document.querySelector("#assignment-reviewer"),
   reviewerSelect: document.querySelector("#reviewer-select"),
@@ -217,6 +219,7 @@ function render() {
   elements.assignmentSummary.textContent = `${state.assignments.length} assignments`;
 
   renderDashboard();
+  renderUnassignedAbstracts();
   populateAssignmentOptions();
   populateReviewerOptions();
   populateReviewSubmissionOptions();
@@ -272,8 +275,34 @@ function renderDashboard() {
   });
 }
 
+function renderUnassignedAbstracts() {
+  const unassigned = state.submissions.filter((submission) => !getAssignmentsForSubmission(submission.id).length);
+  elements.unassignedSummary.textContent = `${unassigned.length} unassigned`;
+
+  store.renderCollection(
+    elements.unassignedList,
+    unassigned,
+    "Every abstract currently has at least one reviewer assigned.",
+    (submission) => `
+      <article class="card">
+        <h3>${store.escapeHtml(submission.title)}</h3>
+        <div class="meta-row">
+          <span><strong>ID:</strong> ${store.escapeHtml(submission.id || "-")}</span>
+          <span><strong>Type:</strong> ${store.escapeHtml(submission.submissionCategory || "-")}</span>
+          <span><strong>School:</strong> ${store.escapeHtml(submission.schoolName || "-")}</span>
+        </div>
+      </article>
+    `
+  );
+}
+
 function populateAssignmentOptions() {
-  populateSelect(elements.assignmentSubmission, state.submissions, "Choose a submission", (submission) => submission.title || submission.id);
+  populateSelect(
+    elements.assignmentSubmission,
+    state.submissions,
+    "Choose a submission",
+    (submission) => `${submission.title || submission.id} (${getAssignmentsForSubmission(submission.id).length} reviewers)`
+  );
   populateSelect(
     elements.assignmentReviewer,
     state.reviewers,
