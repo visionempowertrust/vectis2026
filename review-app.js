@@ -14,6 +14,9 @@ const elements = {
   loadList: document.querySelector("#load-list"),
   unassignedSummary: document.querySelector("#unassigned-summary"),
   unassignedList: document.querySelector("#unassigned-list"),
+  submissionSummaryTotal: document.querySelector("#submission-summary-total"),
+  categorySummaryList: document.querySelector("#category-summary-list"),
+  themeSummaryList: document.querySelector("#theme-summary-list"),
   assignmentSubmission: document.querySelector("#assignment-submission"),
   assignmentReviewer: document.querySelector("#assignment-reviewer"),
   reviewerSelect: document.querySelector("#reviewer-select"),
@@ -220,6 +223,7 @@ function render() {
 
   renderDashboard();
   renderUnassignedAbstracts();
+  renderSubmissionSummary();
   populateAssignmentOptions();
   populateReviewerOptions();
   populateReviewSubmissionOptions();
@@ -290,6 +294,51 @@ function renderUnassignedAbstracts() {
           <span><strong>ID:</strong> ${store.escapeHtml(submission.id || "-")}</span>
           <span><strong>Type:</strong> ${store.escapeHtml(submission.submissionCategory || "-")}</span>
           <span><strong>School:</strong> ${store.escapeHtml(submission.schoolName || "-")}</span>
+        </div>
+      </article>
+    `
+  );
+}
+
+function renderSubmissionSummary() {
+  elements.submissionSummaryTotal.textContent = `${state.submissions.length} papers`;
+  renderCountSummary(
+    elements.categorySummaryList,
+    countByField("submissionCategory"),
+    "No submission categories yet."
+  );
+  renderCountSummary(
+    elements.themeSummaryList,
+    countByField("theme"),
+    "No themes yet."
+  );
+}
+
+function countByField(fieldName) {
+  return state.submissions.reduce((counts, submission) => {
+    const value = submission[fieldName] || "Not specified";
+    counts.set(value, (counts.get(value) || 0) + 1);
+    return counts;
+  }, new Map());
+}
+
+function renderCountSummary(container, counts, emptyMessage) {
+  const entries = Array.from(counts.entries()).sort((left, right) => {
+    if (right[1] !== left[1]) {
+      return right[1] - left[1];
+    }
+    return left[0].localeCompare(right[0]);
+  });
+
+  store.renderCollection(
+    container,
+    entries,
+    emptyMessage,
+    ([label, count]) => `
+      <article class="card">
+        <div class="meta-row">
+          <span><strong>${store.escapeHtml(label)}</strong></span>
+          <span>${count} ${count === 1 ? "paper" : "papers"}</span>
         </div>
       </article>
     `
