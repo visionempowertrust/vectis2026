@@ -377,26 +377,6 @@
     return data;
   }
 
-  async function sendSubmissionEmail(payload) {
-    if (!supabase) {
-      throw new Error("Supabase client unavailable");
-    }
-
-    const { data, error } = await supabase.functions.invoke("send-submission-email", {
-      body: payload
-    });
-
-    if (error) {
-      const details =
-        data?.error ||
-        error.message ||
-        error.context?.error ||
-        error.context?.msg ||
-        "Unknown email error";
-      throw new Error(details);
-    }
-  }
-
   function average(values) {
     if (!values.length) {
       return 0;
@@ -486,7 +466,6 @@
     listSubmissionsRemote,
     listSubmissionsRemoteDetailed,
     loadStateRemoteDetailed,
-    downloadAttachment,
-    sendSubmissionEmail
+    downloadAttachment
   };
 })();

@@ -16,7 +16,6 @@ Open `index.html` in any modern browser and choose the portal you want. No build
 - Shared state now lives in Supabase Postgres tables instead of `state/state.json`.
 - The teacher-facing submission page does not expose reviewer assignment, scores, or rankings.
 - The review page includes reviewer management, assignment mapping, review entry, and ranking tools.
-- The submission page can trigger a confirmation email through a Supabase Edge Function after a successful save.
 
 ## Supabase Database Setup
 
@@ -56,23 +55,3 @@ Example invocation body:
   "statePath": "state/state.json"
 }
 ```
-
-## Submission Email Setup
-
-The browser app calls a Supabase Edge Function named `send-submission-email` after a successful submission. The function source is included at:
-
-- `supabase/functions/send-submission-email/index.ts`
-
-Before it can send email, deploy it in Supabase and set these secrets:
-
-- `RESEND_API_KEY`
-- `RESEND_FROM_EMAIL`
-
-Expected subject line:
-
-- `VE CTIS Submission - <Submission Id> - <Title>`
-
-Recipients:
-
-- the teacher email address entered in the form
-- `meera@visionempowertrust.org`

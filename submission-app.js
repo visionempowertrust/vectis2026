@@ -130,17 +130,6 @@ async function handleSubmissionSave(event) {
         true
       );
     }
-    try {
-      await sendSubmissionEmail(saved, isUpdate);
-    } catch (emailError) {
-      const details = emailError?.message || emailError?.error_description || emailError?.name || "Unknown email error";
-      setUploadStatus(
-        isUpdate
-          ? `Thank you. Submission ${submissionId} has been updated. Email could not be sent: ${details}`
-          : `Thank you for the submission. Your submission ID is ${submissionId}. Please note it down. Email could not be sent: ${details}`,
-        true
-      );
-    }
     render();
   } catch (error) {
     const details = error?.message || error?.error_description || error?.name || "Unknown error";
@@ -178,14 +167,14 @@ function handleUpload(event) {
       }
     };
     reader.readAsText(file);
-  } else if (ext === "doc" || ext === "docx") {
+  } else if (ext === "doc" || ext === "docx" || ext === "pdf" || ext === "ppt" || ext === "pptx") {
     pendingAttachmentFile = file;
     pendingAttachmentName = file.name;
     attachmentMode = true;
     setRequired(false);
-    setUploadStatus("DOC/DOCX attached. You can submit it directly without filling the remaining fields.", false);
+    setUploadStatus("Attachment added. You can submit it directly without filling the remaining fields.", false);
   } else {
-    setUploadStatus("Unsupported file type. Use DOC/DOCX for attachments or JSON/TXT for auto-fill.", true);
+    setUploadStatus("Unsupported file type. Use DOC, DOCX, PDF, PPT, or PPTX for attachments, or JSON/TXT for auto-fill.", true);
   }
 
   event.target.value = "";
@@ -215,16 +204,6 @@ function validateSubmission(formData, existingSubmission, isUpdate) {
   }
 
   return "";
-}
-
-async function sendSubmissionEmail(submission, isUpdate) {
-  await store.sendSubmissionEmail({
-    submissionId: submission.id,
-    title: submission.title || "Untitled submission",
-    teacherEmails: submission.emails || "",
-    ccEmail: "meera@visionempowertrust.org",
-    isUpdate
-  });
 }
 
 function handleUpdateToggle() {
