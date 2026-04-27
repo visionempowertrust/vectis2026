@@ -20,24 +20,37 @@ function parseEmails(value: string): string[] {
     .filter(Boolean);
 }
 
+function jsonResponse(body: Record<string, unknown>, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" }
+  });
+}
+
 serve(async (request) => {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const resendApiKey = "sb_publishable_JNGAGIHKRuDk1MvvcKjt0g_JdBMpVkI"
-    const fromEmail = "visionempowertrust@gmail.com"
-    
+    const resendApiKey = Deno.env.get("RESEND_API_KEY")?.trim();
+    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL")?.trim();
+
     if (!resendApiKey || !fromEmail) {
-      return new Response(JSON.stringify({ error: "Missing email service configuration." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      return jsonResponse({
+        error: "Missing email service configuration. Set RESEND_API_KEY and RESEND_FROM_EMAIL in Supabase secrets."
+      }, 500);
     }
 
     const payload = (await request.json()) as SubmissionEmailRequest;
     const recipients = Array.from(new Set([...parseEmails(payload.teacherEmails || ""), payload.ccEmail].filter(Boolean)));
+    if (!payload.submissionId || !payload.title) {
+      return jsonResponse({ error: "Submission ID and title are required for email delivery." }, 400);
+    }
+    if (!recipients.length) {
+      return jsonResponse({ error: "No recipient email addresses were provided." }, 400);
+    }
+
     const subject = `VE CTIS Submission - ${payload.submissionId} - ${payload.title}`;
     const actionText = payload.isUpdate ? "updated" : "received";
 
@@ -65,20 +78,18 @@ serve(async (request) => {
     });
 
     if (!resendResponse.ok) {
-      const errorText = await resendResponse.text();
-      return new Response(JSON.stringify({ error: errorText || "Email send failed." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      let errorMessage = "Email send failed.";
+      try {
+        const errorBody = await resendResponse.json();
+        errorMessage = errorBody?.message || errorBody?.error?.message || errorBody?.error || errorMessage;
+      } catch {
+        errorMessage = await resendResponse.text() || errorMessage;
+      }
+      return jsonResponse({ error: errorMessage }, 500);
     }
 
-    return new Response(JSON.stringify({ ok: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
+    return jsonResponse({ ok: true });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
+    return jsonResponse({ error: error instanceof Error ? error.message : "Unknown error" }, 500);
   }
 });

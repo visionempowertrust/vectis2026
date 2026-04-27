@@ -232,12 +232,18 @@
       throw new Error("Supabase client unavailable");
     }
 
-    const { error } = await supabase.functions.invoke("send-submission-email", {
+    const { data, error } = await supabase.functions.invoke("send-submission-email", {
       body: payload
     });
 
     if (error) {
-      throw error;
+      const details =
+        data?.error ||
+        error.message ||
+        error.context?.error ||
+        error.context?.msg ||
+        "Unknown email error";
+      throw new Error(details);
     }
   }
 

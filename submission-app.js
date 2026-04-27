@@ -154,14 +154,35 @@ function handleUpload(event) {
 
   const ext = (file.name.split(".").pop() || "").toLowerCase();
 
-  if (ext === "doc" || ext === "docx") {
+  if (ext === "json" || ext === "txt") {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = parseUploadedContent(String(reader.result));
+        const missing = requiredFields.filter((field) => !parsed[field] || !String(parsed[field]).trim());
+        if (missing.length) {
+          setUploadStatus(`Missing required section(s): ${missing.join(", ")}. Please complete these before uploading.`, true);
+          return;
+        }
+        populateForm(parsed);
+        pendingAttachmentFile = null;
+        pendingAttachmentName = null;
+        attachmentMode = false;
+        setRequired(true);
+        setUploadStatus("File loaded. Review the fields below and click Save submission to finish.", false);
+      } catch (error) {
+        setUploadStatus("Could not read that file. Upload a JSON export or a text file with key:value lines matching the template fields.", true);
+      }
+    };
+    reader.readAsText(file);
+  } else if (ext === "doc" || ext === "docx") {
     pendingAttachmentFile = file;
     pendingAttachmentName = file.name;
     attachmentMode = true;
     setRequired(false);
     setUploadStatus("DOC/DOCX attached. You can submit it directly without filling the remaining fields.", false);
   } else {
-    setUploadStatus("Unsupported file type. Please upload a DOC or DOCX file.", true);
+    setUploadStatus("Unsupported file type. Use DOC/DOCX for attachments or JSON/TXT for auto-fill.", true);
   }
 
   event.target.value = "";
@@ -185,8 +206,8 @@ function validateSubmission(formData, existingSubmission, isUpdate) {
   const effectiveYear = resolveUpdatedValue(implementationStart, existingSubmission?.implementationStart, isUpdate);
   if (effectiveYear) {
     const year = Number(effectiveYear);
-    if (!Number.isInteger(year) || year < 2017 || year > 2025) {
-      return "CT implementation start year must be between 2017 and 2025.";
+    if (!Number.isInteger(year) || year < 2017 || year > 2026) {
+      return "CT implementation start year must be between 2017 and 2026.";
     }
   }
 
@@ -217,12 +238,20 @@ function handleUpdateToggle() {
 }
 
 function createSubmissionId() {
-  const nextNumber = state.submissions
-    .map((submission) => Number.parseInt(String(submission.id || "").split("-").pop() || "", 10))
-    .filter((value) => Number.isInteger(value) && value >= 0)
-    .reduce((max, value) => Math.max(max, value), -1) + 1;
+  const now = new Date();
+  const datePart = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0")
+  ].join("");
+  const timePart = [
+    String(now.getHours()).padStart(2, "0"),
+    String(now.getMinutes()).padStart(2, "0"),
+    String(now.getSeconds()).padStart(2, "0")
+  ].join("");
+  const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
 
-  return `VE-CTIS-2026-${String(nextNumber).padStart(3, "0")}`;
+  return `VE-CTIS-2026-${datePart}-${timePart}-${randomPart}`;
 }
 
 function mergeSubmissionUpdate(existingSubmission, incomingSubmission) {
