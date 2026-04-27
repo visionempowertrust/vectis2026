@@ -1,6 +1,8 @@
 ﻿const store = window.PortalStore;
 let state = store.loadState();
 
+let remoteRefreshTimer = null;
+
 const elements = {
   submissionCount: document.querySelector("#submission-count"),
   reviewerCount: document.querySelector("#reviewer-count"),
@@ -29,6 +31,7 @@ const elements = {
 
 bindEvents();
 loadRemoteState();
+startRemoteRefresh();
 
 async function loadRemoteState() {
   const remoteState = await store.loadStateRemoteDetailed();
@@ -37,17 +40,6 @@ async function loadRemoteState() {
     store.saveState(state);
   } else {
     state = store.loadState();
-  }
-
-  const remoteSubmissions = await store.listSubmissionsRemoteDetailed();
-  if (remoteSubmissions.submissions.length) {
-    const byId = new Map((state.submissions || []).map((submission) => [submission.id, submission]));
-    remoteSubmissions.submissions.forEach((submission) => {
-      byId.set(submission.id, { ...(byId.get(submission.id) || {}), ...submission });
-    });
-    state.submissions = Array.from(byId.values()).sort(
-      (left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0)
-    );
   }
 
   store.saveState(state);
@@ -62,9 +54,17 @@ function bindEvents() {
   elements.reviewerSelect.addEventListener("change", populateReviewSubmissionOptions);
   elements.rankingsBody.addEventListener("click", handleRankingReviewClick);
   elements.reviewDetailsClose?.addEventListener("click", () => elements.reviewDetailsDialog?.close());
+  window.addEventListener("focus", () => {
+    void loadRemoteState();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      void loadRemoteState();
+    }
+  });
 }
 
-function handleReviewerSave(event) {
+async function handleReviewerSave(event) {
   event.preventDefault();
   const formData = new FormData(event.currentTarget);
   state.reviewers.push({
@@ -74,12 +74,12 @@ function handleReviewerSave(event) {
     expertise: formData.get("expertise")?.toString().trim(),
     capacity: Number(formData.get("capacity")) || 1
   });
-  persist();
+  await persist();
   event.currentTarget.reset();
   render();
 }
 
-function handleAssignmentSave(event) {
+async function handleAssignmentSave(event) {
   event.preventDefault();
   const formData = new FormData(event.currentTarget);
   const submissionId = formData.get("submissionId")?.toString();
@@ -100,11 +100,11 @@ function handleAssignmentSave(event) {
     reviewerId,
     assignedAt: new Date().toISOString()
   });
-  persist();
+  await persist();
   render();
 }
 
-function handleReviewSave(event) {
+async function handleReviewSave(event) {
   event.preventDefault();
   const formData = new FormData(event.currentTarget);
   const reviewerId = formData.get("reviewerId")?.toString();
@@ -148,13 +148,13 @@ function handleReviewSave(event) {
     state.reviews.push(payload);
   }
 
-  persist();
+  await persist();
   event.currentTarget.reset();
   populateReviewSubmissionOptions();
   render();
 }
 
-function autoAssignMissingReviews() {
+async function autoAssignMissingReviews() {
   const targetReviewsPerSubmission = 2;
   const reviewersByLoad = () => [...state.reviewers].sort((left, right) => getAssignmentsForReviewer(left.id).length - getAssignmentsForReviewer(right.id).length);
 
@@ -181,7 +181,7 @@ function autoAssignMissingReviews() {
     });
   });
 
-  persist();
+  await persist();
   render();
 }
 
@@ -212,7 +212,21 @@ function handleReset() {
 
 async function persist() {
   store.saveState(state);
-  await store.saveStateRemote(state);
+  const mergedState = await store.saveStateRemote(state);
+  if (mergedState) {
+    state = mergedState;
+  }
+}
+
+function startRemoteRefresh() {
+  if (remoteRefreshTimer) {
+    clearInterval(remoteRefreshTimer);
+  }
+  remoteRefreshTimer = window.setInterval(() => {
+    if (!document.hidden) {
+      void loadRemoteState();
+    }
+  }, 15000);
 }
 
 function render() {

@@ -117,7 +117,10 @@ async function handleSubmissionSave(event) {
     setRequired(true);
     store.saveState(state);
     try {
-      await store.saveStateRemote(state);
+      const mergedState = await store.saveStateRemote(state);
+      if (mergedState) {
+        state = mergedState;
+      }
     } catch (stateError) {
       const details = stateError?.message || stateError?.error_description || stateError?.name || "Unknown sync error";
       setUploadStatus(

@@ -7,6 +7,12 @@
   const SUPABASE_URL = "https://yspipbzfjmpjjkaucjia.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzcGlwYnpmam1wamprYXVjamlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NzM2NTQsImV4cCI6MjA4OTA0OTY1NH0.UNOvKF8BWocaVE39gPN8hErBtSOYOyvzQ0LrFbbRUx0";
   const SUPABASE_BUCKET = "vectis2026";
+  const TABLES = {
+    submissions: "portal_submissions",
+    reviewers: "portal_reviewers",
+    assignments: "portal_assignments",
+    reviews: "portal_reviews"
+  };
 
   const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
@@ -17,6 +23,137 @@
     reviews: []
   };
 
+  function normalizeState(state) {
+    return {
+      submissions: Array.isArray(state?.submissions) ? state.submissions : [],
+      reviewers: Array.isArray(state?.reviewers) ? state.reviewers : [],
+      assignments: Array.isArray(state?.assignments) ? state.assignments : [],
+      reviews: Array.isArray(state?.reviews) ? state.reviews : []
+    };
+  }
+
+  function parseOptionalNumber(value) {
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function mapSubmissionFromRow(row) {
+    return {
+      id: row.id,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      title: row.title || "",
+      authors: row.authors || "",
+      schoolName: row.school_name || "",
+      schoolAddress: row.school_address || "",
+      emails: row.emails || "",
+      submissionCategory: row.submission_category || "",
+      theme: row.theme || "",
+      implementationStart: row.implementation_start || "",
+      weeklyPeriods: parseOptionalNumber(row.weekly_periods),
+      teacherCount: parseOptionalNumber(row.teacher_count),
+      studentCount: parseOptionalNumber(row.student_count),
+      grades: row.grades || "",
+      attachmentName: row.attachment_name || null,
+      attachmentUrl: row.attachment_url || null,
+      attachmentPath: row.attachment_path || null
+    };
+  }
+
+  function mapSubmissionToRow(submission) {
+    return {
+      id: submission.id,
+      created_at: submission.createdAt || new Date().toISOString(),
+      updated_at: submission.updatedAt || submission.createdAt || new Date().toISOString(),
+      title: submission.title || "",
+      authors: submission.authors || "",
+      school_name: submission.schoolName || "",
+      school_address: submission.schoolAddress || "",
+      emails: submission.emails || "",
+      submission_category: submission.submissionCategory || "",
+      theme: submission.theme || "",
+      implementation_start: submission.implementationStart || null,
+      weekly_periods: parseOptionalNumber(submission.weeklyPeriods),
+      teacher_count: parseOptionalNumber(submission.teacherCount),
+      student_count: parseOptionalNumber(submission.studentCount),
+      grades: submission.grades || "",
+      attachment_name: submission.attachmentName || null,
+      attachment_url: submission.attachmentUrl || null,
+      attachment_path: submission.attachmentPath || null
+    };
+  }
+
+  function mapReviewerFromRow(row) {
+    return {
+      id: row.id,
+      name: row.name || "",
+      email: row.email || "",
+      expertise: row.expertise || "",
+      capacity: parseOptionalNumber(row.capacity) || 1
+    };
+  }
+
+  function mapReviewerToRow(reviewer) {
+    return {
+      id: reviewer.id,
+      name: reviewer.name || "",
+      email: reviewer.email || "",
+      expertise: reviewer.expertise || "",
+      capacity: parseOptionalNumber(reviewer.capacity) || 1
+    };
+  }
+
+  function mapAssignmentFromRow(row) {
+    return {
+      id: row.id,
+      submissionId: row.submission_id,
+      reviewerId: row.reviewer_id,
+      assignedAt: row.assigned_at
+    };
+  }
+
+  function mapAssignmentToRow(assignment) {
+    return {
+      id: assignment.id,
+      submission_id: assignment.submissionId,
+      reviewer_id: assignment.reviewerId,
+      assigned_at: assignment.assignedAt || new Date().toISOString()
+    };
+  }
+
+  function mapReviewFromRow(row) {
+    return {
+      id: row.id,
+      reviewerId: row.reviewer_id,
+      submissionId: row.submission_id,
+      scores: row.scores || {},
+      totalScore: parseOptionalNumber(row.total_score) || 0,
+      recommendation: row.recommendation || "",
+      comments: row.comments || "",
+      updatedAt: row.updated_at
+    };
+  }
+
+  function mapReviewToRow(review) {
+    return {
+      id: review.id,
+      reviewer_id: review.reviewerId,
+      submission_id: review.submissionId,
+      scores: review.scores || {},
+      total_score: parseOptionalNumber(review.totalScore) || 0,
+      recommendation: review.recommendation || "",
+      comments: review.comments || "",
+      updated_at: review.updatedAt || new Date().toISOString()
+    };
+  }
+
+  function sortSubmissions(submissions) {
+    return [...submissions].sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
+  }
+
   function loadState() {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (!stored) {
@@ -24,34 +161,53 @@
     }
 
     try {
-      const parsed = JSON.parse(stored);
-      return {
-        submissions: parsed.submissions || [],
-        reviewers: parsed.reviewers || [],
-        assignments: parsed.assignments || [],
-        reviews: parsed.reviews || []
-      };
+      const parsed = normalizeState(JSON.parse(stored));
+      parsed.submissions = sortSubmissions(parsed.submissions);
+      return parsed;
     } catch {
       return structuredClone(demoState);
     }
   }
 
   function saveState(state) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const normalized = normalizeState(state);
+    normalized.submissions = sortSubmissions(normalized.submissions);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+  }
+
+  async function fetchTableRows(table, orderBy) {
+    if (!supabase) {
+      throw new Error("Supabase client unavailable");
+    }
+
+    let query = supabase.from(table).select("*");
+    if (orderBy?.column) {
+      query = query.order(orderBy.column, { ascending: orderBy.ascending ?? true });
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
   }
 
   async function loadStateRemote() {
     if (!supabase) return null;
-    const { data, error } = await supabase.storage.from(SUPABASE_BUCKET).download("state/state.json");
-    if (error || !data) return null;
     try {
-      const text = await data.text();
-      const parsed = JSON.parse(text);
+      const [submissionRows, reviewerRows, assignmentRows, reviewRows] = await Promise.all([
+        fetchTableRows(TABLES.submissions, { column: "created_at", ascending: false }),
+        fetchTableRows(TABLES.reviewers, { column: "name", ascending: true }),
+        fetchTableRows(TABLES.assignments, { column: "assigned_at", ascending: true }),
+        fetchTableRows(TABLES.reviews, { column: "updated_at", ascending: false })
+      ]);
+
       return {
-        submissions: parsed.submissions || [],
-        reviewers: parsed.reviewers || [],
-        assignments: parsed.assignments || [],
-        reviews: parsed.reviews || []
+        submissions: submissionRows.map(mapSubmissionFromRow),
+        reviewers: reviewerRows.map(mapReviewerFromRow),
+        assignments: assignmentRows.map(mapAssignmentFromRow),
+        reviews: reviewRows.map(mapReviewFromRow)
       };
     } catch {
       return null;
@@ -63,41 +219,56 @@
       return { ok: false, error: "Supabase client unavailable", state: null };
     }
 
-    const { data, error } = await supabase.storage.from(SUPABASE_BUCKET).download("state/state.json");
-    if (error || !data) {
-      return {
-        ok: false,
-        error: error?.message || "Unable to download state/state.json",
-        state: null
-      };
-    }
-
     try {
-      const text = await data.text();
-      const parsed = JSON.parse(text);
+      const state = await loadStateRemote();
+      if (!state) {
+        return {
+          ok: false,
+          error: "Unable to load shared state from database.",
+          state: null
+        };
+      }
+
       return {
         ok: true,
         error: null,
-        state: {
-          submissions: parsed.submissions || [],
-          reviewers: parsed.reviewers || [],
-          assignments: parsed.assignments || [],
-          reviews: parsed.reviews || []
-        }
+        state
       };
-    } catch (parseError) {
+    } catch (error) {
       return {
         ok: false,
-        error: parseError?.message || "Invalid JSON in state/state.json",
+        error: error?.message || "Unknown database error",
         state: null
       };
     }
   }
 
   async function saveStateRemote(state) {
-    if (!supabase) return;
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-    const { error } = await supabase.storage.from(SUPABASE_BUCKET).upload("state/state.json", blob, { upsert: true });
+    if (!supabase) return null;
+
+    const normalized = normalizeState(state);
+    await Promise.all([
+      upsertRows(TABLES.submissions, normalized.submissions.map(mapSubmissionToRow), "id"),
+      upsertRows(TABLES.reviewers, normalized.reviewers.map(mapReviewerToRow), "id"),
+      upsertRows(TABLES.assignments, normalized.assignments.map(mapAssignmentToRow), "submission_id,reviewer_id"),
+      upsertRows(TABLES.reviews, normalized.reviews.map(mapReviewToRow), "submission_id,reviewer_id")
+    ]);
+
+    const latestState = await loadStateRemote();
+    if (latestState) {
+      saveState(latestState);
+    }
+    return latestState;
+  }
+
+  async function upsertRows(table, rows, onConflict) {
+    if (!supabase || !rows.length) {
+      return;
+    }
+
+    const { error } = await supabase.from(table).upsert(rows, {
+      onConflict
+    });
     if (error) {
       throw error;
     }
@@ -156,31 +327,24 @@
       await saveAttachmentLocal(submission.id, attachmentFile.name, attachmentFile.type, attachmentFile);
     }
 
-    const payload = { ...submission, attachmentUrl, attachmentPath, attachmentName: attachmentFile?.name || submission.attachmentName || null };
-    const metaBlob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const metaPath = `submissions/${submission.id}.json`;
-    const { error } = await supabase.storage.from(SUPABASE_BUCKET).upload(metaPath, metaBlob, { upsert: true });
-    if (error) throw error;
+    const payload = {
+      ...submission,
+      attachmentUrl,
+      attachmentPath,
+      attachmentName: attachmentFile?.name || submission.attachmentName || null
+    };
+    await upsertRows(TABLES.submissions, [mapSubmissionToRow(payload)], "id");
     return payload;
   }
 
   async function listSubmissionsRemote() {
     if (!supabase) return [];
-    const { data, error } = await supabase.storage.from(SUPABASE_BUCKET).list("submissions", { limit: 1000 });
-    if (error) return [];
-    const results = await Promise.all(
-      data.map(async (item) => {
-        const { data: fileData, error: dlError } = await supabase.storage.from(SUPABASE_BUCKET).download(`submissions/${item.name}`);
-        if (dlError || !fileData) return null;
-        const text = await fileData.text();
-        try {
-          return JSON.parse(text);
-        } catch {
-          return null;
-        }
-      })
-    );
-    return results.filter(Boolean).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    try {
+      const rows = await fetchTableRows(TABLES.submissions, { column: "created_at", ascending: false });
+      return rows.map(mapSubmissionFromRow);
+    } catch {
+      return [];
+    }
   }
 
   async function listSubmissionsRemoteDetailed() {
@@ -188,36 +352,22 @@
       return { ok: false, error: "Supabase client unavailable", submissions: [], filesFound: 0 };
     }
 
-    const { data, error } = await supabase.storage.from(SUPABASE_BUCKET).list("submissions", { limit: 1000 });
-    if (error) {
+    try {
+      const submissions = await listSubmissionsRemote();
+      return {
+        ok: true,
+        error: null,
+        submissions,
+        filesFound: submissions.length
+      };
+    } catch (error) {
       return {
         ok: false,
-        error: error.message || "Unable to list submissions/",
+        error: error?.message || "Unable to list submissions",
         submissions: [],
         filesFound: 0
       };
     }
-
-    const results = await Promise.all(
-      (data || []).map(async (item) => {
-        const { data: fileData, error: dlError } = await supabase.storage.from(SUPABASE_BUCKET).download(`submissions/${item.name}`);
-        if (dlError || !fileData) {
-          return null;
-        }
-        try {
-          return JSON.parse(await fileData.text());
-        } catch {
-          return null;
-        }
-      })
-    );
-
-    return {
-      ok: true,
-      error: null,
-      submissions: results.filter(Boolean).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)),
-      filesFound: (data || []).length
-    };
   }
 
   async function downloadAttachment(path) {
@@ -297,15 +447,10 @@
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const incoming = JSON.parse(String(reader.result));
-        const state = {
-          submissions: incoming.submissions || [],
-          reviewers: incoming.reviewers || [],
-          assignments: incoming.assignments || [],
-          reviews: incoming.reviews || []
-        };
-        saveState(state);
-        callback(state);
+        const incoming = normalizeState(JSON.parse(String(reader.result)));
+        incoming.submissions = sortSubmissions(incoming.submissions);
+        saveState(incoming);
+        callback(incoming);
       } catch {
         alert("That file could not be imported. Please choose a valid JSON export from this portal.");
       }
