@@ -72,7 +72,7 @@ async function handleReviewerSave(event) {
     name: formData.get("name")?.toString().trim(),
     email: formData.get("email")?.toString().trim(),
     expertise: formData.get("expertise")?.toString().trim(),
-    capacity: Number(formData.get("capacity")) || 1
+    // capacity: Number(formData.get("capacity")) || 1
   });
   await persist();
   event.currentTarget.reset();
@@ -249,7 +249,8 @@ function renderDashboard() {
       <article class="card">
         <h3>${store.escapeHtml(reviewer.name)}</h3>
         <div class="meta-row">
-          <span><strong>Assigned:</strong> ${assignments.length}/${reviewer.capacity}</span>
+          <!-- <span><strong>Assigned:</strong> ${assignments.length}/${reviewer.capacity}</span> -->
+          <span><strong>Assigned:</strong> ${assignments.length}</span>
           <span><strong>Completed:</strong> ${completedAssignments.length}</span>
           <span><strong>Pending:</strong> ${pendingAssignments.length}</span>
         </div>
@@ -345,7 +346,8 @@ function populateAssignmentOptions() {
     elements.assignmentReviewer,
     state.reviewers,
     "Choose a reviewer",
-    (reviewer) => `${reviewer.name} (${getAssignmentsForReviewer(reviewer.id).length}/${reviewer.capacity})`
+    // (reviewer) => `${reviewer.name} (${getAssignmentsForReviewer(reviewer.id).length}/${reviewer.capacity})`
+    (reviewer) => `${reviewer.name} (${getAssignmentsForReviewer(reviewer.id).length} assigned)`
   );
 }
 

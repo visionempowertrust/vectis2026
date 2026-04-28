@@ -172,9 +172,9 @@ function handleUpload(event) {
     pendingAttachmentName = file.name;
     attachmentMode = true;
     setRequired(false);
-    setUploadStatus("Attachment added. You can submit it directly without filling the remaining fields.", false);
+    setUploadStatus("Attachment added.", false);
   } else {
-    setUploadStatus("Unsupported file type. Use DOC, DOCX, PDF, PPT, or PPTX for attachments, or JSON/TXT for auto-fill.", true);
+    setUploadStatus("Unsupported file type. Use document (docx, ppt or pdf) formats for attachments, or JSON/TXT for auto-fill.", true);
   }
 
   event.target.value = "";

@@ -91,8 +91,8 @@
       id: row.id,
       name: row.name || "",
       email: row.email || "",
-      expertise: row.expertise || "",
-      capacity: parseOptionalNumber(row.capacity) || 1
+      expertise: row.expertise || ""
+      // capacity: parseOptionalNumber(row.capacity) || 1
     };
   }
 
@@ -101,8 +101,8 @@
       id: reviewer.id,
       name: reviewer.name || "",
       email: reviewer.email || "",
-      expertise: reviewer.expertise || "",
-      capacity: parseOptionalNumber(reviewer.capacity) || 1
+      expertise: reviewer.expertise || ""
+      // capacity: parseOptionalNumber(reviewer.capacity) || 1
     };
   }
 

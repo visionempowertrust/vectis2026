@@ -23,8 +23,8 @@ create table if not exists public.portal_reviewers (
   id text primary key,
   name text not null default '',
   email text not null default '',
-  expertise text not null default '',
-  capacity integer not null default 1 check (capacity > 0)
+  expertise text not null default ''
+  -- capacity integer not null default 1 check (capacity > 0)
 );
 
 create table if not exists public.portal_assignments (
