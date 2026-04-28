@@ -1,6 +1,7 @@
 ﻿const store = window.PortalStore;
 let state = store.loadState();
 
+const REVIEW_PASSCODE = "2026ctiskey";
 let remoteRefreshTimer = null;
 
 const elements = {
@@ -109,6 +110,12 @@ async function handleReviewSave(event) {
   const formData = new FormData(event.currentTarget);
   const reviewerId = formData.get("reviewerId")?.toString();
   const submissionId = formData.get("submissionId")?.toString();
+  const passcode = formData.get("passcode")?.toString();
+
+  if (passcode !== REVIEW_PASSCODE) {
+    alert("Passcode incorrect");
+    return;
+  }
 
   if (!state.assignments.some((entry) => entry.reviewerId === reviewerId && entry.submissionId === submissionId)) {
     alert("Only assigned reviewers can submit a review for this paper.");
