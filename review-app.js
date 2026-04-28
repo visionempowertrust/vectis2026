@@ -51,7 +51,6 @@ function bindEvents() {
   elements.reviewerForm.addEventListener("submit", handleReviewerSave);
   elements.assignmentForm.addEventListener("submit", handleAssignmentSave);
   elements.reviewForm.addEventListener("submit", handleReviewSave);
-  document.querySelector("#auto-assign").addEventListener("click", autoAssignMissingReviews);
   elements.reviewerSelect.addEventListener("change", populateReviewSubmissionOptions);
   elements.rankingsBody.addEventListener("click", handleRankingReviewClick);
   elements.reviewDetailsClose?.addEventListener("click", () => elements.reviewDetailsDialog?.close());
@@ -158,37 +157,6 @@ async function handleReviewSave(event) {
   await persist();
   event.currentTarget.reset();
   populateReviewSubmissionOptions();
-  render();
-}
-
-async function autoAssignMissingReviews() {
-  const targetReviewsPerSubmission = 2;
-  const reviewersByLoad = () => [...state.reviewers].sort((left, right) => getAssignmentsForReviewer(left.id).length - getAssignmentsForReviewer(right.id).length);
-
-  state.submissions.forEach((submission) => {
-    const currentAssignments = getAssignmentsForSubmission(submission.id);
-    const needed = targetReviewsPerSubmission - currentAssignments.length;
-    if (needed <= 0) {
-      return;
-    }
-
-    const available = reviewersByLoad().filter((reviewer) => {
-      const alreadyAssigned = currentAssignments.some((entry) => entry.reviewerId === reviewer.id);
-      const hasCapacity = getAssignmentsForReviewer(reviewer.id).length < reviewer.capacity;
-      return !alreadyAssigned && hasCapacity;
-    });
-
-    available.slice(0, needed).forEach((reviewer) => {
-      state.assignments.push({
-        id: crypto.randomUUID(),
-        submissionId: submission.id,
-        reviewerId: reviewer.id,
-        assignedAt: new Date().toISOString()
-      });
-    });
-  });
-
-  await persist();
   render();
 }
 
