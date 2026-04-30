@@ -155,9 +155,16 @@ async function handleReviewSave(event) {
   }
 
   await persist();
-  event.currentTarget.reset();
-  populateReviewSubmissionOptions();
   render();
+  clearReviewForm();
+}
+
+function clearReviewForm() {
+  elements.reviewForm.reset();
+  elements.reviewForm.querySelectorAll("input, select, textarea").forEach((field) => {
+    field.value = "";
+  });
+  populateReviewSubmissionOptions();
 }
 
 function handleImport(event) {
