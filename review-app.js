@@ -24,6 +24,7 @@ const elements = {
   assignmentReviewer: document.querySelector("#assignment-reviewer"),
   reviewerSelect: document.querySelector("#reviewer-select"),
   reviewSubmission: document.querySelector("#review-submission"),
+  reviewSubmissionDataMessage: document.querySelector("#review-submission-data-message"),
   reviewDetailsDialog: document.querySelector("#review-details-dialog"),
   reviewDetailsTitle: document.querySelector("#review-details-title"),
   reviewDetailsBody: document.querySelector("#review-details-body"),
@@ -52,6 +53,7 @@ function bindEvents() {
   elements.assignmentForm.addEventListener("submit", handleAssignmentSave);
   elements.reviewForm.addEventListener("submit", handleReviewSave);
   elements.reviewerSelect.addEventListener("change", populateReviewSubmissionOptions);
+  elements.reviewSubmission.addEventListener("change", updateReviewSubmissionDataMessage);
   elements.rankingsBody.addEventListener("click", handleRankingReviewClick);
   elements.reviewDetailsClose?.addEventListener("click", () => elements.reviewDetailsDialog?.close());
   window.addEventListener("focus", () => {
@@ -372,6 +374,7 @@ function populateReviewSubmissionOptions() {
     reviewerId ? "Choose an assigned submission" : "Choose a reviewer first",
     (submission) => submission.title || submission.id
   );
+  updateReviewSubmissionDataMessage();
 }
 
 function populateSelect(select, items, placeholder, labelGetter) {
@@ -380,6 +383,60 @@ function populateSelect(select, items, placeholder, labelGetter) {
   if (items.some((item) => item.id === currentValue)) {
     select.value = currentValue;
   }
+}
+
+const SUBMISSION_REVIEW_FIELDS = [
+  ["submissionCategory", "Submission category"],
+  ["title", "Abstract title"],
+  ["authors", "Teacher author(s)"],
+  ["schoolName", "School affiliation"],
+  ["schoolAddress", "School address"],
+  ["emails", "Contact email(s)"],
+  ["implementationStart", "CT implementation start year"],
+  ["theme", "Theme"],
+  ["weeklyPeriods", "Weekly CT periods"],
+  ["teacherCount", "Teachers involved"],
+  ["studentCount", "Student count"],
+  ["grades", "Grades served"]
+];
+
+function updateReviewSubmissionDataMessage() {
+  if (!elements.reviewSubmissionDataMessage) {
+    return;
+  }
+
+  const submission = findSubmission(elements.reviewSubmission.value);
+  if (!submission) {
+    elements.reviewSubmissionDataMessage.hidden = true;
+    elements.reviewSubmissionDataMessage.innerHTML = "";
+    return;
+  }
+
+  const missingFields = SUBMISSION_REVIEW_FIELDS
+    .filter(([fieldName]) => !hasSubmissionFieldValue(submission[fieldName]))
+    .map(([, label]) => label);
+
+  if (!missingFields.length) {
+    elements.reviewSubmissionDataMessage.hidden = true;
+    elements.reviewSubmissionDataMessage.innerHTML = "";
+    return;
+  }
+
+  const paperName = submission.title || submission.id || "Selected paper";
+  elements.reviewSubmissionDataMessage.hidden = false;
+  elements.reviewSubmissionDataMessage.innerHTML = `
+    <p><strong>${store.escapeHtml(paperName)}</strong> is missing submission data. Please collect the missing data and send it for backend update before completing the review.</p>
+    <ul class="status-list">
+      ${missingFields.map((label) => `<li>${store.escapeHtml(label)}</li>`).join("")}
+    </ul>
+  `;
+}
+
+function hasSubmissionFieldValue(value) {
+  if (value === null || value === undefined) {
+    return false;
+  }
+  return String(value).trim() !== "";
 }
 
 function getRankedSubmissions() {
