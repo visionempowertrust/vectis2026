@@ -268,7 +268,7 @@ function renderDashboard() {
           </div>
           <div>
             <strong>Pending papers</strong>
-            ${renderSubmissionStatusList(pendingAssignments, "No pending reviews.")}
+            ${renderGroupedSubmissionStatusList(pendingAssignments, "No pending reviews.")}
           </div>
         </div>
       </article>
@@ -532,9 +532,37 @@ function renderSubmissionStatusList(assignments, emptyMessage) {
         const submissionId = submission?.attachmentUrl
           ? `<a href="${store.escapeHtml(submission.attachmentUrl)}" target="_blank" rel="noopener">${store.escapeHtml(submission?.id || "-")}</a>`
           : store.escapeHtml(submission?.id || "-");
-        return `<li>${submissionId} - ${store.escapeHtml(submission?.title || "Unknown submission")}</li>`;
+        const authors = submission?.authors ? ` (${store.escapeHtml(submission.authors)})` : "";
+        return `<li>${submissionId} - ${store.escapeHtml(submission?.title || "Unknown submission")}${authors}</li>`;
       }).join("")}
     </ul>
+  `;
+}
+
+function renderGroupedSubmissionStatusList(assignments, emptyMessage) {
+  if (!assignments.length) {
+    return `<p class="muted">${store.escapeHtml(emptyMessage)}</p>`;
+  }
+
+  const groups = assignments.reduce((categoryGroups, assignment) => {
+    const submission = findSubmission(assignment.submissionId);
+    const category = submission?.submissionCategory || "Not specified";
+    if (!categoryGroups.has(category)) {
+      categoryGroups.set(category, []);
+    }
+    categoryGroups.get(category).push(assignment);
+    return categoryGroups;
+  }, new Map());
+
+  return `
+    <div class="stack">
+      ${Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right)).map(([category, categoryAssignments]) => `
+        <div>
+          <p class="muted"><strong>${store.escapeHtml(category)}</strong></p>
+          ${renderSubmissionStatusList(categoryAssignments, emptyMessage)}
+        </div>
+      `).join("")}
+    </div>
   `;
 }
 
