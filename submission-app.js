@@ -2,7 +2,6 @@
 let state = { submissions: [], reviewers: [], assignments: [], reviews: [] };
 let pendingAttachmentFile = null;
 let pendingAttachmentName = null;
-let attachmentMode = false;
 
 const elements = {
   submissionCount: document.querySelector("#submission-count"),
@@ -27,7 +26,12 @@ const requiredFields = [
   "schoolName",
   "schoolAddress",
   "emails",
+  "implementationStart",
   "theme",
+  "weeklyPeriods",
+  "teacherCount",
+  "studentCount",
+  "grades"
 ];
 
 loadAndRender();
@@ -101,7 +105,6 @@ async function handleSubmissionSave(event) {
     }
     pendingAttachmentFile = null;
     pendingAttachmentName = null;
-    attachmentMode = false;
     setUploadStatus(
       isUpdate
         ? `Thank you. Submission ${submissionId} has been updated.`
@@ -159,7 +162,6 @@ function handleUpload(event) {
         populateForm(parsed);
         pendingAttachmentFile = null;
         pendingAttachmentName = null;
-        attachmentMode = false;
         setRequired(true);
         setUploadStatus("File loaded. Review the fields below and click Save submission to finish.", false);
       } catch (error) {
@@ -170,8 +172,7 @@ function handleUpload(event) {
   } else if (ext === "doc" || ext === "docx" || ext === "pdf" || ext === "ppt" || ext === "pptx") {
     pendingAttachmentFile = file;
     pendingAttachmentName = file.name;
-    attachmentMode = true;
-    setRequired(false);
+    setRequired(true);
     setUploadStatus("Attachment added.", false);
   } else {
     setUploadStatus("Unsupported file type. Use document (docx, ppt or pdf) formats for attachments, or JSON/TXT for auto-fill.", true);
@@ -213,6 +214,7 @@ function handleUpdateToggle() {
   }
   if (elements.submissionIdInput) {
     elements.submissionIdInput.required = isUpdate;
+    elements.submissionIdInput.disabled = !isUpdate;
     if (!isUpdate) {
       elements.submissionIdInput.value = "";
     }
@@ -281,7 +283,7 @@ function setRequired(enabled) {
   requiredFields.forEach((name) => {
     elements.submissionForm.querySelectorAll(`[name="${name}"]`).forEach((input) => {
       if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement || input instanceof HTMLSelectElement) {
-        input.required = enabled && !attachmentMode;
+        input.required = enabled;
       }
     });
   });
