@@ -44,69 +44,7 @@
 
   <main id="main-content" class="layout">
     <section class="dashboard-grid dashboard-grid--review">
-      <article class="panel panel--full">
-        <div class="panel__heading">
-          <h2>Ranked papers</h2>
-          <span class="pill" id="rankings-summary">0 ranked</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Submission ID</th>
-                <th>Type</th>
-                <th>Title</th>
-                <th>School</th>
-                <th>Score</th>
-                <th>Reviews</th>
-                <th>Recommendation</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="rankings-body"></tbody>
-          </table>
-        </div>
-      </article>
 
-      <article class="panel">
-        <div class="panel__heading">
-          <h2>Add reviewer</h2>
-          <span class="pill">Program committee</span>
-        </div>
-        <form id="reviewer-form" class="form stack">
-          <div class="field-grid">
-            <label>
-              Reviewer name
-              <input name="name" type="text" required>
-            </label>
-            <label>
-              Email
-              <input name="email" type="email" required>
-            </label>
-          </div>
-          <button class="button" type="submit">Add reviewer</button>
-        </form>
-      </article>
-
-      <article class="panel">
-        <div class="panel__heading">
-          <h2>Assign reviewers</h2>
-		</div>
-        <form id="assignment-form" class="form stack">
-          <label>
-            Submission
-            <select name="submissionId" id="assignment-submission" required></select>
-          </label>
-          <label>
-            Reviewer
-            <select name="reviewerId" id="assignment-reviewer" required></select>
-          </label>
-          <div class="button-row">
-            <button class="button" type="submit">Assign reviewer</button>
-          </div>
-        </form>
-      </article>
 
       <article class="panel">
         <div class="panel__heading">
@@ -267,6 +205,7 @@
         </form>
       </article>
 
+
       <article class="panel">
         <div class="panel__heading">
           <h2>Review Status</h2>
@@ -277,11 +216,79 @@
 
       <article class="panel panel--full">
         <div class="panel__heading">
+          <h2>Ranked papers</h2>
+          <span class="pill" id="rankings-summary">0 ranked</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Submission ID</th>
+                <th>Type</th>
+                <th>Title</th>
+                <th>School</th>
+                <th>Score</th>
+                <th>Reviews</th>
+                <th>Recommendation</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="rankings-body"></tbody>
+          </table>
+        </div>
+      </article>
+
+
+      <article class="panel">
+        <div class="panel__heading">
+          <h2>Add reviewer</h2>
+          <span class="pill">Program committee</span>
+        </div>
+        <form id="reviewer-form" class="form stack">
+          <div class="field-grid">
+            <label>
+              Reviewer name
+              <input name="name" type="text" required>
+            </label>
+            <label>
+              Email
+              <input name="email" type="email" required>
+            </label>
+          </div>
+          <button class="button" type="submit">Add reviewer</button>
+        </form>
+      </article>
+
+
+      <article class="panel">
+        <div class="panel__heading">
+          <h2>Assign reviewers</h2>
+		</div>
+        <form id="assignment-form" class="form stack">
+          <label>
+            Submission
+            <select name="submissionId" id="assignment-submission" required></select>
+          </label>
+          <label>
+            Reviewer
+            <select name="reviewerId" id="assignment-reviewer" required></select>
+          </label>
+          <div class="button-row">
+            <button class="button" type="submit">Assign reviewer</button>
+          </div>
+        </form>
+      </article>
+
+
+      <article class="panel panel--full">
+        <div class="panel__heading">
           <h2>Unassigned Abstracts</h2>
           <span class="pill" id="unassigned-summary">0 unassigned</span>
         </div>
         <div id="unassigned-list" class="stack"></div>
       </article>
+
 
       <article class="panel panel--full">
         <div class="panel__heading">
