@@ -4,16 +4,41 @@ let state = store.loadState();
 const REVIEW_PASSCODE = "2026ctiskey";
 let remoteRefreshTimer = null;
 
+const RANKING_DASHBOARDS = [
+  {
+    summaryKey: "teacherRankingsSummary",
+    bodyKey: "teacherRankingsBody",
+    emptyMessage: "No in-service or B.Ed student ranked papers yet.",
+    matches: (category) => isTeacherRankingCategory(category)
+  },
+  {
+    summaryKey: "veStaffRankingsSummary",
+    bodyKey: "veStaffRankingsBody",
+    emptyMessage: "No VE staff ranked papers yet.",
+    matches: (category) => isVeStaffRankingCategory(category)
+  },
+  {
+    summaryKey: "uncategorizedRankingsSummary",
+    bodyKey: "uncategorizedRankingsBody",
+    emptyMessage: "No uncategorized ranked papers yet.",
+    matches: (category) => !isTeacherRankingCategory(category) && !isVeStaffRankingCategory(category)
+  }
+];
+
 const elements = {
   submissionCount: document.querySelector("#submission-count"),
   reviewerCount: document.querySelector("#reviewer-count"),
   reviewCount: document.querySelector("#review-count"),
-  rankingsSummary: document.querySelector("#rankings-summary"),
+  teacherRankingsSummary: document.querySelector("#teacher-rankings-summary"),
+  veStaffRankingsSummary: document.querySelector("#ve-staff-rankings-summary"),
+  uncategorizedRankingsSummary: document.querySelector("#uncategorized-rankings-summary"),
   assignmentSummary: document.querySelector("#assignment-summary"),
   reviewerForm: document.querySelector("#reviewer-form"),
   assignmentForm: document.querySelector("#assignment-form"),
   reviewForm: document.querySelector("#review-form"),
-  rankingsBody: document.querySelector("#rankings-body"),
+  teacherRankingsBody: document.querySelector("#teacher-rankings-body"),
+  veStaffRankingsBody: document.querySelector("#ve-staff-rankings-body"),
+  uncategorizedRankingsBody: document.querySelector("#uncategorized-rankings-body"),
   loadList: document.querySelector("#load-list"),
   unassignedSummary: document.querySelector("#unassigned-summary"),
   unassignedList: document.querySelector("#unassigned-list"),
@@ -54,7 +79,9 @@ function bindEvents() {
   elements.reviewForm.addEventListener("submit", handleReviewSave);
   elements.reviewerSelect.addEventListener("change", populateReviewSubmissionOptions);
   elements.reviewSubmission.addEventListener("change", updateReviewSubmissionDataMessage);
-  elements.rankingsBody.addEventListener("click", handleRankingReviewClick);
+  RANKING_DASHBOARDS.forEach((dashboard) => {
+    elements[dashboard.bodyKey].addEventListener("click", handleRankingReviewClick);
+  });
   elements.reviewDetailsClose?.addEventListener("click", () => elements.reviewDetailsDialog?.close());
   window.addEventListener("focus", () => {
     void loadRemoteState();
@@ -229,22 +256,11 @@ function render() {
 
 function renderDashboard() {
   const ranked = getRankedSubmissions();
-  elements.rankingsSummary.textContent = `${ranked.length} ranked`;
-  elements.rankingsBody.innerHTML = ranked.length
-      ? ranked.map((entry, index) => `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${store.escapeHtml(entry.submission.id || "-")}</td>
-          <td>${store.escapeHtml(entry.submission.submissionCategory || "-")}</td>
-          <td>${store.escapeHtml(entry.submission.title)}</td>
-          <td>${store.escapeHtml(entry.submission.schoolName)}</td>
-          <td>${entry.metrics.averageScore ? entry.metrics.averageScore.toFixed(1) : "-"}</td>
-          <td>${renderReviewCountLink(entry.submission.id, entry.metrics.reviewCount)}</td>
-          <td>${store.escapeHtml(entry.metrics.recommendationSummary)}</td>
-          <td><span class="status ${statusClass(entry.metrics)}">${statusText(entry.metrics)}</span></td>
-        </tr>
-      `).join("")
-    : `<tr><td colspan="9">No ranked papers yet. Add reviews to see the leaderboard.</td></tr>`;
+  RANKING_DASHBOARDS.forEach((dashboard) => {
+    const dashboardRanked = ranked.filter((entry) => dashboard.matches(normalizeSubmissionCategory(entry.submission.submissionCategory)));
+    elements[dashboard.summaryKey].textContent = `${dashboardRanked.length} ranked`;
+    elements[dashboard.bodyKey].innerHTML = renderRankingRows(dashboardRanked, dashboard.emptyMessage);
+  });
 
   store.renderCollection(elements.loadList, state.reviewers, "Reviewer load appears here after you add the committee.", (reviewer) => {
     const assignments = getAssignmentsForReviewer(reviewer.id);
@@ -276,6 +292,36 @@ function renderDashboard() {
       </article>
     `;
   });
+}
+
+function renderRankingRows(ranked, emptyMessage) {
+  return ranked.length
+    ? ranked.map((entry, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${store.escapeHtml(entry.submission.id || "-")}</td>
+        <td>${store.escapeHtml(entry.submission.submissionCategory || "-")}</td>
+        <td>${store.escapeHtml(entry.submission.title)}</td>
+        <td>${store.escapeHtml(entry.submission.schoolName)}</td>
+        <td>${entry.metrics.averageScore ? entry.metrics.averageScore.toFixed(1) : "-"}</td>
+        <td>${renderReviewCountLink(entry.submission.id, entry.metrics.reviewCount)}</td>
+        <td>${store.escapeHtml(entry.metrics.recommendationSummary)}</td>
+        <td><span class="status ${statusClass(entry.metrics)}">${statusText(entry.metrics)}</span></td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="9">${store.escapeHtml(emptyMessage)}</td></tr>`;
+}
+
+function normalizeSubmissionCategory(category) {
+  return (category || "").toString().trim().toLowerCase();
+}
+
+function isTeacherRankingCategory(category) {
+  return category.includes("in-service") || category.includes("pre-service") || category.includes("bed") || category.includes("b.ed");
+}
+
+function isVeStaffRankingCategory(category) {
+  return category.includes("ve staff");
 }
 
 function renderUnassignedAbstracts() {
