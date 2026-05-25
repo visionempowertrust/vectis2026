@@ -25,6 +25,45 @@ const RANKING_DASHBOARDS = [
   }
 ];
 
+const INDIAN_STATES_AND_TERRITORIES = [
+  "Andaman and Nicobar Islands",
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chandigarh",
+  "Chhattisgarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jammu and Kashmir",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Ladakh",
+  "Lakshadweep",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Puducherry",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal"
+];
+
 const elements = {
   submissionCount: document.querySelector("#submission-count"),
   reviewerCount: document.querySelector("#reviewer-count"),
@@ -45,6 +84,7 @@ const elements = {
   submissionSummaryTotal: document.querySelector("#submission-summary-total"),
   categorySummaryList: document.querySelector("#category-summary-list"),
   themeSummaryList: document.querySelector("#theme-summary-list"),
+  stateSummaryList: document.querySelector("#state-summary-list"),
   assignmentSubmission: document.querySelector("#assignment-submission"),
   assignmentReviewer: document.querySelector("#assignment-reviewer"),
   reviewerSelect: document.querySelector("#reviewer-select"),
@@ -357,14 +397,44 @@ function renderSubmissionSummary() {
     countByField("theme"),
     "No themes yet."
   );
+  renderCountSummary(
+    elements.stateSummaryList,
+    countByGetter(getSubmissionState),
+    "No state data yet."
+  );
 }
 
 function countByField(fieldName) {
+  return countByGetter((submission) => submission[fieldName]);
+}
+
+function countByGetter(valueGetter) {
   return state.submissions.reduce((counts, submission) => {
-    const value = submission[fieldName] || "Not specified";
+    const value = valueGetter(submission) || "Not specified";
     counts.set(value, (counts.get(value) || 0) + 1);
     return counts;
   }, new Map());
+}
+
+function getSubmissionState(submission) {
+  const address = submission.schoolAddress?.toString().trim();
+  if (!address) {
+    return "";
+  }
+
+  const normalizedAddress = address.toLowerCase();
+  const matchedState = INDIAN_STATES_AND_TERRITORIES.find((stateName) =>
+    normalizedAddress.includes(stateName.toLowerCase())
+  );
+  if (matchedState) {
+    return matchedState;
+  }
+
+  const addressParts = address
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return addressParts.at(-1) || "";
 }
 
 function renderCountSummary(container, counts, emptyMessage) {
