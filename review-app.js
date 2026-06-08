@@ -64,11 +64,39 @@ const INDIAN_STATES_AND_TERRITORIES = [
   "West Bengal"
 ];
 
+const TEACHER_RANKING_CSV_COLUMNS = [
+  ["Rank", "rank"],
+  ["Submission ID", "id"],
+  ["Created at", "createdAt"],
+  ["Updated at", "updatedAt"],
+  ["Submission category", "submissionCategory"],
+  ["Abstract title", "title"],
+  ["Teacher author(s)", "authors"],
+  ["School affiliation", "schoolName"],
+  ["School address", "schoolAddress"],
+  ["Contact email(s)", "emails"],
+  ["CT implementation start year", "implementationStart"],
+  ["Theme", "theme"],
+  ["Weekly CT periods", "weeklyPeriods"],
+  ["Teachers involved", "teacherCount"],
+  ["Student count", "studentCount"],
+  ["Grades served", "grades"],
+  ["Attachment name", "attachmentName"],
+  ["Attachment URL", "attachmentUrl"],
+  ["Attachment path", "attachmentPath"],
+  ["Assignment count", "assignmentCount"],
+  ["Review count", "reviewCount"],
+  ["Average score", "averageScore"],
+  ["Recommendation summary", "recommendationSummary"],
+  ["Status", "status"]
+];
+
 const elements = {
   submissionCount: document.querySelector("#submission-count"),
   reviewerCount: document.querySelector("#reviewer-count"),
   reviewCount: document.querySelector("#review-count"),
   teacherRankingsSummary: document.querySelector("#teacher-rankings-summary"),
+  exportTeacherRankingsCsv: document.querySelector("#export-teacher-rankings-csv"),
   veStaffRankingsSummary: document.querySelector("#ve-staff-rankings-summary"),
   uncategorizedRankingsSummary: document.querySelector("#uncategorized-rankings-summary"),
   assignmentSummary: document.querySelector("#assignment-summary"),
@@ -119,6 +147,7 @@ function bindEvents() {
   elements.reviewForm.addEventListener("submit", handleReviewSave);
   elements.reviewerSelect.addEventListener("change", populateReviewSubmissionOptions);
   elements.reviewSubmission.addEventListener("change", updateReviewSubmissionDataMessage);
+  elements.exportTeacherRankingsCsv?.addEventListener("click", exportTeacherRankingsCsv);
   RANKING_DASHBOARDS.forEach((dashboard) => {
     elements[dashboard.bodyKey].addEventListener("click", handleRankingReviewClick);
   });
@@ -362,6 +391,43 @@ function isTeacherRankingCategory(category) {
 
 function isVeStaffRankingCategory(category) {
   return category.includes("ve staff");
+}
+
+function getTeacherRankedSubmissions() {
+  return getRankedSubmissions().filter((entry) =>
+    isTeacherRankingCategory(normalizeSubmissionCategory(entry.submission.submissionCategory))
+  );
+}
+
+function exportTeacherRankingsCsv() {
+  const rows = [
+    TEACHER_RANKING_CSV_COLUMNS.map(([label]) => label),
+    ...getTeacherRankedSubmissions().map((entry, index) => {
+      const row = {
+        ...entry.submission,
+        rank: index + 1,
+        assignmentCount: entry.metrics.assignmentCount,
+        reviewCount: entry.metrics.reviewCount,
+        averageScore: entry.metrics.averageScore ? entry.metrics.averageScore.toFixed(1) : "",
+        recommendationSummary: entry.metrics.recommendationSummary,
+        status: statusText(entry.metrics)
+      };
+      return TEACHER_RANKING_CSV_COLUMNS.map(([, fieldName]) => row[fieldName] ?? "");
+    })
+  ];
+  const csv = rows.map((row) => row.map(formatCsvValue).join(",")).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "ctis-2026-inservice-bed-rankings.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function formatCsvValue(value) {
+  const text = String(value ?? "");
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 function renderUnassignedAbstracts() {
