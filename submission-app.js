@@ -10,6 +10,7 @@ const elements = {
   submissionList: document.querySelector("#submission-list"),
   uploadInput: document.querySelector("#submission-upload"),
   uploadStatus: document.querySelector("#upload-status"),
+  exportSubmissionsCsv: document.querySelector("#export-submissions-csv"),
   modeInputs: document.querySelectorAll('input[name="submissionMode"]'),
   submissionIdRow: document.querySelector("#submission-id-row"),
   submissionIdInput: document.querySelector("#submission-id")
@@ -17,7 +18,26 @@ const elements = {
 
 elements.submissionForm.addEventListener("submit", handleSubmissionSave);
 elements.uploadInput?.addEventListener("change", handleUpload);
+elements.exportSubmissionsCsv?.addEventListener("click", exportSubmissionsCsv);
 elements.modeInputs?.forEach((input) => input.addEventListener("change", handleUpdateToggle));
+
+const submissionCsvColumns = [
+  ["Submission ID", "id"],
+  ["Created at", "createdAt"],
+  ["Updated at", "updatedAt"],
+  ["Submission category", "submissionCategory"],
+  ["Abstract title", "title"],
+  ["Teacher author(s)", "authors"],
+  ["School affiliation", "schoolName"],
+  ["School address", "schoolAddress"],
+  ["Contact email(s)", "emails"],
+  ["CT implementation start year", "implementationStart"],
+  ["Theme", "theme"],
+  ["Weekly CT periods", "weeklyPeriods"],
+  ["Teachers involved", "teacherCount"],
+  ["Student count", "studentCount"],
+  ["Grades served", "grades"]
+];
 
 const requiredFields = [
   "submissionCategory",
@@ -185,6 +205,28 @@ function setUploadStatus(message, isError) {
   if (!elements.uploadStatus) return;
   elements.uploadStatus.textContent = message;
   elements.uploadStatus.style.color = isError ? "#8e2d2d" : "#556070";
+}
+
+function exportSubmissionsCsv() {
+  const rows = [
+    submissionCsvColumns.map(([label]) => label),
+    ...state.submissions.map((submission) =>
+      submissionCsvColumns.map(([, fieldName]) => submission[fieldName] ?? "")
+    )
+  ];
+  const csv = rows.map((row) => row.map(formatCsvValue).join(",")).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "ctis-2026-submissions.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function formatCsvValue(value) {
+  const text = String(value ?? "");
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 function validateSubmission(formData, existingSubmission, isUpdate) {
