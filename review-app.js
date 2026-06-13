@@ -91,6 +91,11 @@ const TEACHER_RANKING_CSV_COLUMNS = [
   ["Status", "status"]
 ];
 
+const VE_STAFF_RANKING_CSV_COLUMNS = [
+  ...TEACHER_RANKING_CSV_COLUMNS,
+  ["Reviewer comments", "reviewerComments"]
+];
+
 const elements = {
   submissionCount: document.querySelector("#submission-count"),
   reviewerCount: document.querySelector("#reviewer-count"),
@@ -98,6 +103,7 @@ const elements = {
   teacherRankingsSummary: document.querySelector("#teacher-rankings-summary"),
   exportTeacherRankingsCsv: document.querySelector("#export-teacher-rankings-csv"),
   veStaffRankingsSummary: document.querySelector("#ve-staff-rankings-summary"),
+  exportVeStaffRankingsCsv: document.querySelector("#export-ve-staff-rankings-csv"),
   uncategorizedRankingsSummary: document.querySelector("#uncategorized-rankings-summary"),
   assignmentSummary: document.querySelector("#assignment-summary"),
   reviewerForm: document.querySelector("#reviewer-form"),
@@ -148,6 +154,7 @@ function bindEvents() {
   elements.reviewerSelect.addEventListener("change", populateReviewSubmissionOptions);
   elements.reviewSubmission.addEventListener("change", updateReviewSubmissionDataMessage);
   elements.exportTeacherRankingsCsv?.addEventListener("click", exportTeacherRankingsCsv);
+  elements.exportVeStaffRankingsCsv?.addEventListener("click", exportVeStaffRankingsCsv);
   RANKING_DASHBOARDS.forEach((dashboard) => {
     elements[dashboard.bodyKey].addEventListener("click", handleRankingReviewClick);
   });
@@ -399,6 +406,12 @@ function getTeacherRankedSubmissions() {
   );
 }
 
+function getVeStaffRankedSubmissions() {
+  return getRankedSubmissions().filter((entry) =>
+    isVeStaffRankingCategory(normalizeSubmissionCategory(entry.submission.submissionCategory))
+  );
+}
+
 function exportTeacherRankingsCsv() {
   const rows = [
     TEACHER_RANKING_CSV_COLUMNS.map(([label]) => label),
@@ -423,6 +436,39 @@ function exportTeacherRankingsCsv() {
   link.download = "ctis-2026-inservice-bed-rankings.csv";
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function exportVeStaffRankingsCsv() {
+  const rows = [
+    VE_STAFF_RANKING_CSV_COLUMNS.map(([label]) => label),
+    ...getVeStaffRankedSubmissions().map((entry, index) => {
+      const row = {
+        ...entry.submission,
+        rank: index + 1,
+        assignmentCount: entry.metrics.assignmentCount,
+        reviewCount: entry.metrics.reviewCount,
+        averageScore: entry.metrics.averageScore ? entry.metrics.averageScore.toFixed(1) : "",
+        recommendationSummary: entry.metrics.recommendationSummary,
+        status: statusText(entry.metrics),
+        reviewerComments: formatReviewerComments(entry.submission.id)
+      };
+      return VE_STAFF_RANKING_CSV_COLUMNS.map(([, fieldName]) => row[fieldName] ?? "");
+    })
+  ];
+  const csv = rows.map((row) => row.map(formatCsvValue).join(",")).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "ctis-2026-ve-staff-rankings.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function formatReviewerComments(submissionId) {
+  return getReviewsForSubmission(submissionId)
+    .map((review, index) => `Reviewer ${index + 1}: ${review.comments || "-"}`)
+    .join("; ");
 }
 
 function formatCsvValue(value) {
