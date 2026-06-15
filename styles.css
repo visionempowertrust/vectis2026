@@ -437,6 +437,14 @@ th {
   background: rgba(249, 242, 223, 0.45);
 }
 
+.success-state {
+  border: 1px solid rgba(15, 94, 93, 0.3);
+  border-radius: 16px;
+  padding: 14px 16px;
+  color: var(--brand-strong);
+  background: rgba(15, 94, 93, 0.1);
+}
+
 .status-list {
   margin: 8px 0 0;
   padding-left: 20px;

@@ -149,6 +149,7 @@ const elements = {
   reviewerSelect: document.querySelector("#reviewer-select"),
   reviewSubmission: document.querySelector("#review-submission"),
   reviewSubmissionDataMessage: document.querySelector("#review-submission-data-message"),
+  reviewSuccessMessage: document.querySelector("#review-success-message"),
   reviewDetailsDialog: document.querySelector("#review-details-dialog"),
   reviewDetailsTitle: document.querySelector("#review-details-title"),
   reviewDetailsBody: document.querySelector("#review-details-body"),
@@ -255,6 +256,7 @@ async function handleAssignmentSave(event) {
 
 async function handleReviewSave(event) {
   event.preventDefault();
+  hideReviewSuccessMessage();
   const formData = new FormData(event.currentTarget);
   const reviewerId = formData.get("reviewerId")?.toString();
   const submissionId = formData.get("submissionId")?.toString();
@@ -297,6 +299,7 @@ async function handleReviewSave(event) {
   await persist();
   render();
   clearReviewForm();
+  showReviewSuccessMessage("Review submitted successfully.");
 }
 
 function clearReviewForm() {
@@ -305,6 +308,24 @@ function clearReviewForm() {
     field.value = "";
   });
   populateReviewSubmissionOptions();
+}
+
+function showReviewSuccessMessage(message) {
+  if (!elements.reviewSuccessMessage) {
+    return;
+  }
+
+  elements.reviewSuccessMessage.textContent = message;
+  elements.reviewSuccessMessage.hidden = false;
+}
+
+function hideReviewSuccessMessage() {
+  if (!elements.reviewSuccessMessage) {
+    return;
+  }
+
+  elements.reviewSuccessMessage.textContent = "";
+  elements.reviewSuccessMessage.hidden = true;
 }
 
 function handleImport(event) {
@@ -419,7 +440,8 @@ function renderDashboard() {
 
 function renderRankingRows(ranked, emptyMessage, dashboard) {
   const showRound2Selection = Boolean(!IS_ROUND2_PAGE && dashboard.selectionCategory);
-  const columnCount = showRound2Selection ? 10 : 9;
+  const showAuthorColumn = IS_ROUND2_PAGE;
+  const columnCount = 9 + (showRound2Selection ? 1 : 0) + (showAuthorColumn ? 1 : 0);
 
   return ranked.length
     ? ranked.map((entry, index) => `
@@ -439,6 +461,7 @@ function renderRankingRows(ranked, emptyMessage, dashboard) {
         <td>${store.escapeHtml(entry.submission.id || "-")}</td>
         <td>${store.escapeHtml(entry.submission.submissionCategory || "-")}</td>
         <td>${store.escapeHtml(entry.submission.title)}</td>
+        ${showAuthorColumn ? `<td>${store.escapeHtml(getFirstAuthor(entry.submission.authors) || "-")}</td>` : ""}
         <td>${store.escapeHtml(entry.submission.schoolName)}</td>
         <td>${entry.metrics.averageScore ? entry.metrics.averageScore.toFixed(1) : "-"}</td>
         <td>${renderReviewCountLink(entry.submission.id, entry.metrics.reviewCount)}</td>
