@@ -194,10 +194,6 @@
             Reviewer comments
             <textarea name="comments" rows="4" required></textarea>
           </label>
-          <label>
-            Passcode
-            <input name="passcode" type="password" autocomplete="off" required>
-          </label>
           <button class="button" type="submit">Save review</button>
         </form>
       </article>
@@ -360,7 +356,7 @@
   <script>
     window.ReviewPortalConfig = {
       mode: "round2",
-      passcode: "2026ctisround2",
+      passcodeRequired: false,
       scoreFields: [
         "objective",
         "resources",

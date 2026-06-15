@@ -3,6 +3,7 @@ let state = store.loadState();
 
 const REVIEW_PASSCODE = "2026ctiskey";
 const REVIEW_PORTAL_CONFIG = window.ReviewPortalConfig || {};
+const IS_REVIEW_PASSCODE_REQUIRED = REVIEW_PORTAL_CONFIG.passcodeRequired !== false;
 const ACTIVE_REVIEW_PASSCODE = REVIEW_PORTAL_CONFIG.passcode || REVIEW_PASSCODE;
 const IS_ROUND2_PAGE = REVIEW_PORTAL_CONFIG.mode === "round2";
 const DEFAULT_REVIEW_SCORE_FIELDS = [
@@ -197,7 +198,8 @@ function bindEvents() {
 
 async function handleReviewerSave(event) {
   event.preventDefault();
-  const formData = new FormData(event.currentTarget);
+  const form = event.currentTarget;
+  const formData = new FormData(form);
   const reviewers = getActiveReviewers();
   const reviewer = {
     id: crypto.randomUUID(),
@@ -210,8 +212,6 @@ async function handleReviewerSave(event) {
   reviewers.push(reviewer);
   try {
     await persist();
-    event.currentTarget.reset();
-    render();
   } catch (error) {
     const savedReviewerIndex = reviewers.findIndex((entry) => entry.id === reviewer.id);
     if (savedReviewerIndex >= 0) {
@@ -220,7 +220,11 @@ async function handleReviewerSave(event) {
       render();
     }
     alert(`Reviewer could not be saved to the database. ${error?.message || "Please check the Round 2 reviewer table setup."}`);
+    return;
   }
+
+  form.reset();
+  render();
 }
 
 async function handleAssignmentSave(event) {
@@ -256,7 +260,7 @@ async function handleReviewSave(event) {
   const submissionId = formData.get("submissionId")?.toString();
   const passcode = formData.get("passcode")?.toString();
 
-  if (passcode !== ACTIVE_REVIEW_PASSCODE) {
+  if (IS_REVIEW_PASSCODE_REQUIRED && passcode !== ACTIVE_REVIEW_PASSCODE) {
     alert("Passcode incorrect");
     return;
   }
@@ -677,7 +681,7 @@ function populateAssignmentOptions() {
     elements.assignmentSubmission,
     getVisibleSubmissions(),
     "Choose a submission",
-    (submission) => `${submission.title || submission.id} (${getAssignmentsForSubmission(submission.id).length} reviewers)`
+    formatAssignmentSubmissionLabel
   );
   populateSelect(
     elements.assignmentReviewer,
@@ -694,6 +698,25 @@ function populateReviewerOptions() {
   }
 
   populateSelect(elements.reviewerSelect, getActiveReviewers(), "Choose a reviewer", (reviewer) => reviewer.name);
+}
+
+function formatAssignmentSubmissionLabel(submission) {
+  const assignmentCount = getAssignmentsForSubmission(submission.id).length;
+  const title = submission.title || submission.id;
+  if (!IS_ROUND2_PAGE) {
+    return `${title} (${assignmentCount} reviewers)`;
+  }
+
+  const firstAuthor = getFirstAuthor(submission.authors);
+  const authorText = firstAuthor ? ` - ${firstAuthor}` : "";
+  return `${title}${authorText} (${assignmentCount} reviewers)`;
+}
+
+function getFirstAuthor(authors) {
+  return String(authors || "")
+    .split(/[,;|]/)
+    .map((author) => author.trim())
+    .filter(Boolean)[0] || "";
 }
 
 function populateReviewSubmissionOptions() {
