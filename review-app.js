@@ -3,6 +3,7 @@ let state = store.loadState();
 
 const REVIEW_PASSCODE = "2026ctiskey";
 const REVIEW_PORTAL_CONFIG = window.ReviewPortalConfig || {};
+const ACTIVE_REVIEW_PASSCODE = REVIEW_PORTAL_CONFIG.passcode || REVIEW_PASSCODE;
 const IS_ROUND2_PAGE = REVIEW_PORTAL_CONFIG.mode === "round2";
 let remoteRefreshTimer = null;
 
@@ -182,7 +183,7 @@ function bindEvents() {
 async function handleReviewerSave(event) {
   event.preventDefault();
   const formData = new FormData(event.currentTarget);
-  state.reviewers.push({
+  getActiveReviewers().push({
     id: crypto.randomUUID(),
     name: formData.get("name")?.toString().trim(),
     email: formData.get("email")?.toString().trim(),
@@ -227,7 +228,7 @@ async function handleReviewSave(event) {
   const submissionId = formData.get("submissionId")?.toString();
   const passcode = formData.get("passcode")?.toString();
 
-  if (passcode !== REVIEW_PASSCODE) {
+  if (passcode !== ACTIVE_REVIEW_PASSCODE) {
     alert("Passcode incorrect");
     return;
   }
@@ -331,7 +332,7 @@ function startRemoteRefresh() {
 function render() {
   const visibleSubmissions = getVisibleSubmissions();
   elements.submissionCount.textContent = visibleSubmissions.length;
-  elements.reviewerCount.textContent = state.reviewers.length;
+  elements.reviewerCount.textContent = getActiveReviewers().length;
   elements.reviewCount.textContent = getActiveReviews().filter((review) =>
     visibleSubmissions.some((submission) => submission.id === review.submissionId)
   ).length;
@@ -362,7 +363,7 @@ function renderDashboard() {
     return;
   }
 
-  store.renderCollection(elements.loadList, state.reviewers, "Reviewer load appears here after you add the committee.", (reviewer) => {
+  store.renderCollection(elements.loadList, getActiveReviewers(), "Reviewer load appears here after you add the committee.", (reviewer) => {
     const assignments = getAssignmentsForReviewer(reviewer.id);
     const completedAssignments = assignments.filter((assignment) =>
       getActiveReviews().some((review) => review.reviewerId === reviewer.id && review.submissionId === assignment.submissionId)
@@ -662,7 +663,7 @@ function populateAssignmentOptions() {
   );
   populateSelect(
     elements.assignmentReviewer,
-    state.reviewers,
+    getActiveReviewers(),
     "Choose a reviewer",
     // (reviewer) => `${reviewer.name} (${getAssignmentsForReviewer(reviewer.id).length}/${reviewer.capacity})`
     (reviewer) => `${reviewer.name} (${getAssignmentsForReviewer(reviewer.id).length} assigned)`
@@ -674,7 +675,7 @@ function populateReviewerOptions() {
     return;
   }
 
-  populateSelect(elements.reviewerSelect, state.reviewers, "Choose a reviewer", (reviewer) => reviewer.name);
+  populateSelect(elements.reviewerSelect, getActiveReviewers(), "Choose a reviewer", (reviewer) => reviewer.name);
 }
 
 function populateReviewSubmissionOptions() {
@@ -826,8 +827,12 @@ function getActiveReviews() {
   return IS_ROUND2_PAGE ? state.round2Reviews : state.reviews;
 }
 
+function getActiveReviewers() {
+  return IS_ROUND2_PAGE ? state.round2Reviewers : state.reviewers;
+}
+
 function findReviewer(reviewerId) {
-  return state.reviewers.find((reviewer) => reviewer.id === reviewerId);
+  return getActiveReviewers().find((reviewer) => reviewer.id === reviewerId);
 }
 
 function findSubmission(submissionId) {

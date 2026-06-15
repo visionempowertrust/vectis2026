@@ -13,6 +13,7 @@
     assignments: "portal_assignments",
     reviews: "portal_reviews",
     round2Selections: "portal_round2_selections",
+    round2Reviewers: "portal_round2_reviewers",
     round2Assignments: "portal_round2_assignments",
     round2Reviews: "portal_round2_reviews"
   };
@@ -25,6 +26,7 @@
     assignments: [],
     reviews: [],
     round2Selections: [],
+    round2Reviewers: [],
     round2Assignments: [],
     round2Reviews: []
   };
@@ -36,6 +38,7 @@
       assignments: Array.isArray(state?.assignments) ? state.assignments : [],
       reviews: Array.isArray(state?.reviews) ? state.reviews : [],
       round2Selections: Array.isArray(state?.round2Selections) ? state.round2Selections : [],
+      round2Reviewers: Array.isArray(state?.round2Reviewers) ? state.round2Reviewers : [],
       round2Assignments: Array.isArray(state?.round2Assignments) ? state.round2Assignments : [],
       round2Reviews: Array.isArray(state?.round2Reviews) ? state.round2Reviews : []
     };
@@ -230,12 +233,18 @@
         fetchTableRows(TABLES.reviews, { column: "updated_at", ascending: false })
       ]);
       let round2SelectionRows = [];
+      let round2ReviewerRows = [];
       let round2AssignmentRows = [];
       let round2ReviewRows = [];
       try {
         round2SelectionRows = await fetchTableRows(TABLES.round2Selections, { column: "selected_at", ascending: false });
       } catch {
         round2SelectionRows = [];
+      }
+      try {
+        round2ReviewerRows = await fetchTableRows(TABLES.round2Reviewers, { column: "name", ascending: true });
+      } catch {
+        round2ReviewerRows = [];
       }
       try {
         round2AssignmentRows = await fetchTableRows(TABLES.round2Assignments, { column: "assigned_at", ascending: true });
@@ -254,6 +263,7 @@
         assignments: assignmentRows.map(mapAssignmentFromRow),
         reviews: reviewRows.map(mapReviewFromRow),
         round2Selections: round2SelectionRows.map(mapRound2SelectionFromRow),
+        round2Reviewers: round2ReviewerRows.map(mapReviewerFromRow),
         round2Assignments: round2AssignmentRows.map(mapAssignmentFromRow),
         round2Reviews: round2ReviewRows.map(mapReviewFromRow)
       };
@@ -298,6 +308,9 @@
     await Promise.all([
       upsertRows(TABLES.submissions, normalized.submissions.map(mapSubmissionToRow), "id"),
       upsertRows(TABLES.reviewers, normalized.reviewers.map(mapReviewerToRow), "id"),
+      upsertRows(TABLES.round2Reviewers, normalized.round2Reviewers.map(mapReviewerToRow), "id")
+    ]);
+    await Promise.all([
       upsertRows(TABLES.assignments, normalized.assignments.map(mapAssignmentToRow), "submission_id,reviewer_id"),
       upsertRows(TABLES.reviews, normalized.reviews.map(mapReviewToRow), "submission_id,reviewer_id"),
       upsertRows(TABLES.round2Selections, normalized.round2Selections.map(mapRound2SelectionToRow), "submission_id"),
