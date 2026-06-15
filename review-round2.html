@@ -134,43 +134,39 @@
               </select>
             </label>
             <label>
-              <span>Decomposition</span>
-              <small class="field-hint">Is the CT Pillar Decomposition correctly identified and explained?</small>
-              <select name="decomposition" required>
+              <span>Innovation</span>
+              <small class="field-hint">How innovative is the submission in its approach, design, or implementation?</small>
+              <select name="innovation" required>
                 <option value="">Choose score</option>
                 <option value="1">1</option>
-                <option value="0.5">0.5</option>
-                <option value="0">0</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
               </select>
             </label>
             <label>
-              <span>Algorithmic Thinking</span>
-              <small class="field-hint">Is the CT Pillar Algorithmic Thinking correctly identified and explained?</small>
-              <select name="algorithmicThinking" required>
+              <span>Creativity</span>
+              <small class="field-hint">How creative is the submission in engaging learners or presenting the activity?</small>
+              <select name="creativity" required>
                 <option value="">Choose score</option>
                 <option value="1">1</option>
-                <option value="0.5">0.5</option>
-                <option value="0">0</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
               </select>
             </label>
             <label>
-              <span>Pattern Recognition</span>
-              <small class="field-hint">Is the CT Pillar Pattern Recognition correctly identified and explained?</small>
-              <select name="patternRecognition" required>
+              <span>Authenticity</span>
+              <small class="field-hint">How authentic and grounded is the submission in actual classroom or school practice?</small>
+              <select name="authenticity" required>
                 <option value="">Choose score</option>
                 <option value="1">1</option>
-                <option value="0.5">0.5</option>
-                <option value="0">0</option>
-              </select>
-            </label>
-            <label>
-              <span>Abstraction</span>
-              <small class="field-hint">Is the CT Pillar Abstraction correctly identified and explained?</small>
-              <select name="abstraction" required>
-                <option value="">Choose score</option>
-                <option value="1">1</option>
-                <option value="0.5">0.5</option>
-                <option value="0">0</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
               </select>
             </label>
             <label>
@@ -364,7 +360,20 @@
   <script>
     window.ReviewPortalConfig = {
       mode: "round2",
-      passcode: "2026ctisround2"
+      passcode: "2026ctisround2",
+      scoreFields: [
+        "objective",
+        "resources",
+        "ctAlignment",
+        "evidence",
+        "challenges",
+        "inPictures",
+        "studentExperiences",
+        "innovation",
+        "creativity",
+        "authenticity",
+        "potential"
+      ]
     };
   </script>
   <script src="./review-app.js"></script>

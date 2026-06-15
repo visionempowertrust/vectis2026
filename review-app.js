@@ -5,6 +5,21 @@ const REVIEW_PASSCODE = "2026ctiskey";
 const REVIEW_PORTAL_CONFIG = window.ReviewPortalConfig || {};
 const ACTIVE_REVIEW_PASSCODE = REVIEW_PORTAL_CONFIG.passcode || REVIEW_PASSCODE;
 const IS_ROUND2_PAGE = REVIEW_PORTAL_CONFIG.mode === "round2";
+const DEFAULT_REVIEW_SCORE_FIELDS = [
+  "objective",
+  "resources",
+  "ctAlignment",
+  "evidence",
+  "challenges",
+  "inPictures",
+  "studentExperiences",
+  "decomposition",
+  "algorithmicThinking",
+  "patternRecognition",
+  "abstraction",
+  "potential"
+];
+const ACTIVE_REVIEW_SCORE_FIELDS = REVIEW_PORTAL_CONFIG.scoreFields || DEFAULT_REVIEW_SCORE_FIELDS;
 let remoteRefreshTimer = null;
 
 const RANKING_DASHBOARDS = [
@@ -183,16 +198,29 @@ function bindEvents() {
 async function handleReviewerSave(event) {
   event.preventDefault();
   const formData = new FormData(event.currentTarget);
-  getActiveReviewers().push({
+  const reviewers = getActiveReviewers();
+  const reviewer = {
     id: crypto.randomUUID(),
     name: formData.get("name")?.toString().trim(),
     email: formData.get("email")?.toString().trim(),
     expertise: formData.get("expertise")?.toString().trim(),
     // capacity: Number(formData.get("capacity")) || 1
-  });
-  await persist();
-  event.currentTarget.reset();
-  render();
+  };
+
+  reviewers.push(reviewer);
+  try {
+    await persist();
+    event.currentTarget.reset();
+    render();
+  } catch (error) {
+    const savedReviewerIndex = reviewers.findIndex((entry) => entry.id === reviewer.id);
+    if (savedReviewerIndex >= 0) {
+      reviewers.splice(savedReviewerIndex, 1);
+      store.saveState(state);
+      render();
+    }
+    alert(`Reviewer could not be saved to the database. ${error?.message || "Please check the Round 2 reviewer table setup."}`);
+  }
 }
 
 async function handleAssignmentSave(event) {
@@ -238,20 +266,10 @@ async function handleReviewSave(event) {
     return;
   }
 
-  const scores = {
-    objective: Number(formData.get("objective")) || 0,
-    resources: Number(formData.get("resources")) || 0,
-    ctAlignment: Number(formData.get("ctAlignment")) || 0,
-    evidence: Number(formData.get("evidence")) || 0,
-    challenges: Number(formData.get("challenges")) || 0,
-    inPictures: Number(formData.get("inPictures")) || 0,
-    studentExperiences: Number(formData.get("studentExperiences")) || 0,
-    decomposition: Number(formData.get("decomposition")) || 0,
-    algorithmicThinking: Number(formData.get("algorithmicThinking")) || 0,
-    patternRecognition: Number(formData.get("patternRecognition")) || 0,
-    abstraction: Number(formData.get("abstraction")) || 0,
-    potential: Number(formData.get("potential")) || 0
-  };
+  const scores = ACTIVE_REVIEW_SCORE_FIELDS.reduce((fieldScores, fieldName) => {
+    fieldScores[fieldName] = Number(formData.get(fieldName)) || 0;
+    return fieldScores;
+  }, {});
 
   const reviews = getActiveReviews();
   const existing = reviews.find((entry) => entry.reviewerId === reviewerId && entry.submissionId === submissionId);
