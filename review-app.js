@@ -584,6 +584,7 @@ function renderUnassignedAbstracts() {
         <h3>${store.escapeHtml(submission.title)}</h3>
         <div class="meta-row">
           <span><strong>ID:</strong> ${store.escapeHtml(submission.id || "-")}</span>
+          <span><strong>Author:</strong> ${store.escapeHtml(getFirstAuthor(submission.authors) || "-")}</span>
           <span><strong>Type:</strong> ${store.escapeHtml(submission.submissionCategory || "-")}</span>
           <span><strong>School:</strong> ${store.escapeHtml(submission.schoolName || "-")}</span>
         </div>
