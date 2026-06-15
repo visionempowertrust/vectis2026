@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CTIS 2026 Review Portal</title>
+  <title>CTIS 2026 Round 2 Review Portal</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -13,22 +13,22 @@
       <img class="brand-bar__logo" src="./vision-empower-logo.svg" alt="Vision Empower Trust logo">
       <div class="brand-bar__text">
         <p class="eyebrow">Hosted by Vision Empower Trust</p>
-        <p class="brand-bar__caption">Organizer and Review portal</p>
+        <p class="brand-bar__caption">Round 2 review portal</p>
       </div>
     </div>
 
     <section class="hero">
       <div class="hero__copy">
         <p class="eyebrow">Computational Thinking in Schools 2026</p>
-        <h1>Review portal</h1>
+        <h1>Round 2 review portal</h1>
         <p class="hero__text">
-          Organizers and reviewers can manage assignments, scoring, comments, and ranked dashboards here without exposing that workflow in the teacher submission page.
+          Reviewers can manage Round 2 assignments, scoring, comments, and ranked dashboards for papers moved forward from the first review dashboard.
         </p>
-        <a class="button" href="./review-round2.html">Open Round 2 portal</a>
+        <a class="button" href="./review.html">Back to main review portal</a>
       </div>
       <div class="hero__meta">
         <div class="stat">
-          <span class="stat__label">Submissions</span>
+          <span class="stat__label">Round 2 Papers</span>
           <strong class="stat__value" id="submission-count">0</strong>
         </div>
         <div class="stat">
@@ -221,14 +221,12 @@
           <div class="button-row">
             <span class="pill" id="teacher-rankings-summary">0 ranked</span>
             <button class="button button--secondary" id="export-teacher-rankings-csv" type="button">Export CSV</button>
-            <button class="button" id="mark-teacher-round2" type="button">Move selected to Round 2</button>
           </div>
         </div>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Round 2</th>
                 <th>Rank</th>
                 <th>Submission ID</th>
                 <th>Type</th>
@@ -251,14 +249,12 @@
           <div class="button-row">
             <span class="pill" id="ve-staff-rankings-summary">0 ranked</span>
             <button class="button button--secondary" id="export-ve-staff-rankings-csv" type="button">Export CSV</button>
-            <button class="button" id="mark-ve-staff-round2" type="button">Move selected to Round 2</button>
           </div>
         </div>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Round 2</th>
                 <th>Rank</th>
                 <th>Submission ID</th>
                 <th>Type</th>
@@ -274,33 +270,6 @@
           </table>
         </div>
       </article>
-
-      <article class="panel panel--full">
-        <div class="panel__heading">
-          <h2>Uncategorized ranked papers</h2>
-          <span class="pill" id="uncategorized-rankings-summary">0 ranked</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Submission ID</th>
-                <th>Type</th>
-                <th>Title</th>
-                <th>School</th>
-                <th>Score</th>
-                <th>Reviews</th>
-                <th>Recommendation</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="uncategorized-rankings-body"></tbody>
-          </table>
-        </div>
-      </article>
-
-
       <article class="panel">
         <div class="panel__heading">
           <h2>Add reviewer</h2>
@@ -392,6 +361,11 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./shared.js"></script>
+  <script>
+    window.ReviewPortalConfig = {
+      mode: "round2"
+    };
+  </script>
   <script src="./review-app.js"></script>
 </body>
 </html>

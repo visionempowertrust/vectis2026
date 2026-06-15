@@ -11,7 +11,10 @@
     submissions: "portal_submissions",
     reviewers: "portal_reviewers",
     assignments: "portal_assignments",
-    reviews: "portal_reviews"
+    reviews: "portal_reviews",
+    round2Selections: "portal_round2_selections",
+    round2Assignments: "portal_round2_assignments",
+    round2Reviews: "portal_round2_reviews"
   };
 
   const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
@@ -20,7 +23,10 @@
     submissions: [],
     reviewers: [],
     assignments: [],
-    reviews: []
+    reviews: [],
+    round2Selections: [],
+    round2Assignments: [],
+    round2Reviews: []
   };
 
   function normalizeState(state) {
@@ -28,7 +34,10 @@
       submissions: Array.isArray(state?.submissions) ? state.submissions : [],
       reviewers: Array.isArray(state?.reviewers) ? state.reviewers : [],
       assignments: Array.isArray(state?.assignments) ? state.assignments : [],
-      reviews: Array.isArray(state?.reviews) ? state.reviews : []
+      reviews: Array.isArray(state?.reviews) ? state.reviews : [],
+      round2Selections: Array.isArray(state?.round2Selections) ? state.round2Selections : [],
+      round2Assignments: Array.isArray(state?.round2Assignments) ? state.round2Assignments : [],
+      round2Reviews: Array.isArray(state?.round2Reviews) ? state.round2Reviews : []
     };
   }
 
@@ -150,6 +159,24 @@
     };
   }
 
+  function mapRound2SelectionFromRow(row) {
+    return {
+      id: row.id,
+      submissionId: row.submission_id,
+      category: row.category || "",
+      selectedAt: row.selected_at
+    };
+  }
+
+  function mapRound2SelectionToRow(selection) {
+    return {
+      id: selection.id,
+      submission_id: selection.submissionId,
+      category: selection.category || "",
+      selected_at: selection.selectedAt || new Date().toISOString()
+    };
+  }
+
   function sortSubmissions(submissions) {
     return [...submissions].sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
   }
@@ -202,12 +229,33 @@
         fetchTableRows(TABLES.assignments, { column: "assigned_at", ascending: true }),
         fetchTableRows(TABLES.reviews, { column: "updated_at", ascending: false })
       ]);
+      let round2SelectionRows = [];
+      let round2AssignmentRows = [];
+      let round2ReviewRows = [];
+      try {
+        round2SelectionRows = await fetchTableRows(TABLES.round2Selections, { column: "selected_at", ascending: false });
+      } catch {
+        round2SelectionRows = [];
+      }
+      try {
+        round2AssignmentRows = await fetchTableRows(TABLES.round2Assignments, { column: "assigned_at", ascending: true });
+      } catch {
+        round2AssignmentRows = [];
+      }
+      try {
+        round2ReviewRows = await fetchTableRows(TABLES.round2Reviews, { column: "updated_at", ascending: false });
+      } catch {
+        round2ReviewRows = [];
+      }
 
       return {
         submissions: submissionRows.map(mapSubmissionFromRow),
         reviewers: reviewerRows.map(mapReviewerFromRow),
         assignments: assignmentRows.map(mapAssignmentFromRow),
-        reviews: reviewRows.map(mapReviewFromRow)
+        reviews: reviewRows.map(mapReviewFromRow),
+        round2Selections: round2SelectionRows.map(mapRound2SelectionFromRow),
+        round2Assignments: round2AssignmentRows.map(mapAssignmentFromRow),
+        round2Reviews: round2ReviewRows.map(mapReviewFromRow)
       };
     } catch {
       return null;
@@ -251,7 +299,10 @@
       upsertRows(TABLES.submissions, normalized.submissions.map(mapSubmissionToRow), "id"),
       upsertRows(TABLES.reviewers, normalized.reviewers.map(mapReviewerToRow), "id"),
       upsertRows(TABLES.assignments, normalized.assignments.map(mapAssignmentToRow), "submission_id,reviewer_id"),
-      upsertRows(TABLES.reviews, normalized.reviews.map(mapReviewToRow), "submission_id,reviewer_id")
+      upsertRows(TABLES.reviews, normalized.reviews.map(mapReviewToRow), "submission_id,reviewer_id"),
+      upsertRows(TABLES.round2Selections, normalized.round2Selections.map(mapRound2SelectionToRow), "submission_id"),
+      upsertRows(TABLES.round2Assignments, normalized.round2Assignments.map(mapAssignmentToRow), "submission_id,reviewer_id"),
+      upsertRows(TABLES.round2Reviews, normalized.round2Reviews.map(mapReviewToRow), "submission_id,reviewer_id")
     ]);
 
     const latestState = await loadStateRemote();

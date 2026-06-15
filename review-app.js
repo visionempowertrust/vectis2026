@@ -2,18 +2,24 @@
 let state = store.loadState();
 
 const REVIEW_PASSCODE = "2026ctiskey";
+const REVIEW_PORTAL_CONFIG = window.ReviewPortalConfig || {};
+const IS_ROUND2_PAGE = REVIEW_PORTAL_CONFIG.mode === "round2";
 let remoteRefreshTimer = null;
 
 const RANKING_DASHBOARDS = [
   {
     summaryKey: "teacherRankingsSummary",
     bodyKey: "teacherRankingsBody",
+    selectionKey: "teacher",
+    selectionCategory: "teacher",
     emptyMessage: "No in-service or B.Ed student ranked papers yet.",
     matches: (category) => isTeacherRankingCategory(category)
   },
   {
     summaryKey: "veStaffRankingsSummary",
     bodyKey: "veStaffRankingsBody",
+    selectionKey: "veStaff",
+    selectionCategory: "ve-staff",
     emptyMessage: "No VE staff ranked papers yet.",
     matches: (category) => isVeStaffRankingCategory(category)
   },
@@ -102,8 +108,10 @@ const elements = {
   reviewCount: document.querySelector("#review-count"),
   teacherRankingsSummary: document.querySelector("#teacher-rankings-summary"),
   exportTeacherRankingsCsv: document.querySelector("#export-teacher-rankings-csv"),
+  markTeacherRound2: document.querySelector("#mark-teacher-round2"),
   veStaffRankingsSummary: document.querySelector("#ve-staff-rankings-summary"),
   exportVeStaffRankingsCsv: document.querySelector("#export-ve-staff-rankings-csv"),
+  markVeStaffRound2: document.querySelector("#mark-ve-staff-round2"),
   uncategorizedRankingsSummary: document.querySelector("#uncategorized-rankings-summary"),
   assignmentSummary: document.querySelector("#assignment-summary"),
   reviewerForm: document.querySelector("#reviewer-form"),
@@ -148,15 +156,17 @@ async function loadRemoteState() {
 }
 
 function bindEvents() {
-  elements.reviewerForm.addEventListener("submit", handleReviewerSave);
-  elements.assignmentForm.addEventListener("submit", handleAssignmentSave);
-  elements.reviewForm.addEventListener("submit", handleReviewSave);
-  elements.reviewerSelect.addEventListener("change", populateReviewSubmissionOptions);
-  elements.reviewSubmission.addEventListener("change", updateReviewSubmissionDataMessage);
+  elements.reviewerForm?.addEventListener("submit", handleReviewerSave);
+  elements.assignmentForm?.addEventListener("submit", handleAssignmentSave);
+  elements.reviewForm?.addEventListener("submit", handleReviewSave);
+  elements.reviewerSelect?.addEventListener("change", populateReviewSubmissionOptions);
+  elements.reviewSubmission?.addEventListener("change", updateReviewSubmissionDataMessage);
   elements.exportTeacherRankingsCsv?.addEventListener("click", exportTeacherRankingsCsv);
   elements.exportVeStaffRankingsCsv?.addEventListener("click", exportVeStaffRankingsCsv);
+  elements.markTeacherRound2?.addEventListener("click", () => markSelectedForRound2("teacher", "teacher"));
+  elements.markVeStaffRound2?.addEventListener("click", () => markSelectedForRound2("veStaff", "ve-staff"));
   RANKING_DASHBOARDS.forEach((dashboard) => {
-    elements[dashboard.bodyKey].addEventListener("click", handleRankingReviewClick);
+    elements[dashboard.bodyKey]?.addEventListener("click", handleRankingReviewClick);
   });
   elements.reviewDetailsClose?.addEventListener("click", () => elements.reviewDetailsDialog?.close());
   window.addEventListener("focus", () => {
@@ -194,12 +204,13 @@ async function handleAssignmentSave(event) {
     return;
   }
 
-  if (state.assignments.some((entry) => entry.submissionId === submissionId && entry.reviewerId === reviewerId)) {
+  const assignments = getActiveAssignments();
+  if (assignments.some((entry) => entry.submissionId === submissionId && entry.reviewerId === reviewerId)) {
     alert("That reviewer is already assigned to this paper.");
     return;
   }
 
-  state.assignments.push({
+  assignments.push({
     id: crypto.randomUUID(),
     submissionId,
     reviewerId,
@@ -221,7 +232,7 @@ async function handleReviewSave(event) {
     return;
   }
 
-  if (!state.assignments.some((entry) => entry.reviewerId === reviewerId && entry.submissionId === submissionId)) {
+  if (!getActiveAssignments().some((entry) => entry.reviewerId === reviewerId && entry.submissionId === submissionId)) {
     alert("Only assigned reviewers can submit a review for this paper.");
     return;
   }
@@ -241,7 +252,8 @@ async function handleReviewSave(event) {
     potential: Number(formData.get("potential")) || 0
   };
 
-  const existing = state.reviews.find((entry) => entry.reviewerId === reviewerId && entry.submissionId === submissionId);
+  const reviews = getActiveReviews();
+  const existing = reviews.find((entry) => entry.reviewerId === reviewerId && entry.submissionId === submissionId);
   const payload = {
     id: existing?.id || crypto.randomUUID(),
     reviewerId,
@@ -256,7 +268,7 @@ async function handleReviewSave(event) {
   if (existing) {
     Object.assign(existing, payload);
   } else {
-    state.reviews.push(payload);
+    reviews.push(payload);
   }
 
   await persist();
@@ -317,10 +329,15 @@ function startRemoteRefresh() {
 }
 
 function render() {
-  elements.submissionCount.textContent = state.submissions.length;
+  const visibleSubmissions = getVisibleSubmissions();
+  elements.submissionCount.textContent = visibleSubmissions.length;
   elements.reviewerCount.textContent = state.reviewers.length;
-  elements.reviewCount.textContent = state.reviews.length;
-  elements.assignmentSummary.textContent = `${state.assignments.length} assignments`;
+  elements.reviewCount.textContent = getActiveReviews().filter((review) =>
+    visibleSubmissions.some((submission) => submission.id === review.submissionId)
+  ).length;
+  if (elements.assignmentSummary) {
+    elements.assignmentSummary.textContent = `${getVisibleAssignments().length} assignments`;
+  }
 
   renderDashboard();
   renderUnassignedAbstracts();
@@ -333,18 +350,25 @@ function render() {
 function renderDashboard() {
   const ranked = getRankedSubmissions();
   RANKING_DASHBOARDS.forEach((dashboard) => {
+    if (!elements[dashboard.summaryKey] || !elements[dashboard.bodyKey]) {
+      return;
+    }
     const dashboardRanked = ranked.filter((entry) => dashboard.matches(normalizeSubmissionCategory(entry.submission.submissionCategory)));
     elements[dashboard.summaryKey].textContent = `${dashboardRanked.length} ranked`;
-    elements[dashboard.bodyKey].innerHTML = renderRankingRows(dashboardRanked, dashboard.emptyMessage);
+    elements[dashboard.bodyKey].innerHTML = renderRankingRows(dashboardRanked, dashboard.emptyMessage, dashboard);
   });
+
+  if (!elements.loadList) {
+    return;
+  }
 
   store.renderCollection(elements.loadList, state.reviewers, "Reviewer load appears here after you add the committee.", (reviewer) => {
     const assignments = getAssignmentsForReviewer(reviewer.id);
     const completedAssignments = assignments.filter((assignment) =>
-      state.reviews.some((review) => review.reviewerId === reviewer.id && review.submissionId === assignment.submissionId)
+      getActiveReviews().some((review) => review.reviewerId === reviewer.id && review.submissionId === assignment.submissionId)
     );
     const pendingAssignments = assignments.filter((assignment) =>
-      !state.reviews.some((review) => review.reviewerId === reviewer.id && review.submissionId === assignment.submissionId)
+      !getActiveReviews().some((review) => review.reviewerId === reviewer.id && review.submissionId === assignment.submissionId)
     );
     return `
       <article class="card">
@@ -370,10 +394,24 @@ function renderDashboard() {
   });
 }
 
-function renderRankingRows(ranked, emptyMessage) {
+function renderRankingRows(ranked, emptyMessage, dashboard) {
+  const showRound2Selection = Boolean(!IS_ROUND2_PAGE && dashboard.selectionCategory);
+  const columnCount = showRound2Selection ? 10 : 9;
+
   return ranked.length
     ? ranked.map((entry, index) => `
       <tr>
+        ${showRound2Selection ? `
+          <td>
+            <input
+              type="checkbox"
+              value="${store.escapeHtml(entry.submission.id)}"
+              data-round2-selection="${store.escapeHtml(dashboard.selectionKey)}"
+              ${isSubmissionSelectedForRound2(entry.submission.id) ? "checked disabled" : ""}
+              aria-label="Select ${store.escapeHtml(entry.submission.title || entry.submission.id)} for Round 2"
+            >
+          </td>
+        ` : ""}
         <td>${index + 1}</td>
         <td>${store.escapeHtml(entry.submission.id || "-")}</td>
         <td>${store.escapeHtml(entry.submission.submissionCategory || "-")}</td>
@@ -385,7 +423,37 @@ function renderRankingRows(ranked, emptyMessage) {
         <td><span class="status ${statusClass(entry.metrics)}">${statusText(entry.metrics)}</span></td>
       </tr>
     `).join("")
-    : `<tr><td colspan="9">${store.escapeHtml(emptyMessage)}</td></tr>`;
+    : `<tr><td colspan="${columnCount}">${store.escapeHtml(emptyMessage)}</td></tr>`;
+}
+
+async function markSelectedForRound2(selectionKey, category) {
+  const selector = `[data-round2-selection="${selectionKey}"]:checked:not(:disabled)`;
+  const selectedSubmissionIds = Array.from(document.querySelectorAll(selector))
+    .map((input) => input.value)
+    .filter(Boolean)
+    .filter((submissionId) => !isSubmissionSelectedForRound2(submissionId));
+
+  if (!selectedSubmissionIds.length) {
+    alert("Choose at least one paper to move to Round 2.");
+    return;
+  }
+
+  selectedSubmissionIds.forEach((submissionId) => {
+    state.round2Selections.push({
+      id: crypto.randomUUID(),
+      submissionId,
+      category,
+      selectedAt: new Date().toISOString()
+    });
+  });
+
+  await persist();
+  render();
+  alert(`${selectedSubmissionIds.length} paper${selectedSubmissionIds.length === 1 ? "" : "s"} moved to Round 2.`);
+}
+
+function isSubmissionSelectedForRound2(submissionId) {
+  return state.round2Selections.some((selection) => selection.submissionId === submissionId);
 }
 
 function normalizeSubmissionCategory(category) {
@@ -477,7 +545,11 @@ function formatCsvValue(value) {
 }
 
 function renderUnassignedAbstracts() {
-  const unassigned = state.submissions.filter((submission) => !getAssignmentsForSubmission(submission.id).length);
+  if (!elements.unassignedSummary || !elements.unassignedList) {
+    return;
+  }
+
+  const unassigned = getVisibleSubmissions().filter((submission) => !getAssignmentsForSubmission(submission.id).length);
   elements.unassignedSummary.textContent = `${unassigned.length} unassigned`;
 
   store.renderCollection(
@@ -498,7 +570,12 @@ function renderUnassignedAbstracts() {
 }
 
 function renderSubmissionSummary() {
-  elements.submissionSummaryTotal.textContent = `${state.submissions.length} papers`;
+  if (!elements.submissionSummaryTotal) {
+    return;
+  }
+
+  const visibleSubmissions = getVisibleSubmissions();
+  elements.submissionSummaryTotal.textContent = `${visibleSubmissions.length} papers`;
   renderCountSummary(
     elements.categorySummaryList,
     countByField("submissionCategory"),
@@ -521,7 +598,7 @@ function countByField(fieldName) {
 }
 
 function countByGetter(valueGetter) {
-  return state.submissions.reduce((counts, submission) => {
+  return getVisibleSubmissions().reduce((counts, submission) => {
     const value = valueGetter(submission) || "Not specified";
     counts.set(value, (counts.get(value) || 0) + 1);
     return counts;
@@ -573,9 +650,13 @@ function renderCountSummary(container, counts, emptyMessage) {
 }
 
 function populateAssignmentOptions() {
+  if (!elements.assignmentSubmission || !elements.assignmentReviewer) {
+    return;
+  }
+
   populateSelect(
     elements.assignmentSubmission,
-    state.submissions,
+    getVisibleSubmissions(),
     "Choose a submission",
     (submission) => `${submission.title || submission.id} (${getAssignmentsForSubmission(submission.id).length} reviewers)`
   );
@@ -589,13 +670,21 @@ function populateAssignmentOptions() {
 }
 
 function populateReviewerOptions() {
+  if (!elements.reviewerSelect) {
+    return;
+  }
+
   populateSelect(elements.reviewerSelect, state.reviewers, "Choose a reviewer", (reviewer) => reviewer.name);
 }
 
 function populateReviewSubmissionOptions() {
+  if (!elements.reviewSubmission || !elements.reviewerSelect) {
+    return;
+  }
+
   const reviewerId = elements.reviewerSelect.value;
   const assignedSubmissionIds = reviewerId ? getAssignmentsForReviewer(reviewerId).map((entry) => entry.submissionId) : [];
-  const assignedSubmissions = state.submissions.filter((submission) => assignedSubmissionIds.includes(submission.id));
+  const assignedSubmissions = getVisibleSubmissions().filter((submission) => assignedSubmissionIds.includes(submission.id));
   populateSelect(
     elements.reviewSubmission,
     assignedSubmissions,
@@ -668,7 +757,7 @@ function hasSubmissionFieldValue(value) {
 }
 
 function getRankedSubmissions() {
-  return state.submissions
+  return getVisibleSubmissions()
     .map((submission) => ({
       submission,
       metrics: getSubmissionMetrics(submission.id)
@@ -697,15 +786,44 @@ function sumScores(values) {
 }
 
 function getAssignmentsForSubmission(submissionId) {
-  return state.assignments.filter((entry) => entry.submissionId === submissionId);
+  return getActiveAssignments().filter((entry) => entry.submissionId === submissionId);
+}
+
+function getVisibleSubmissions() {
+  if (!IS_ROUND2_PAGE) {
+    return state.submissions;
+  }
+
+  const round2SubmissionIds = new Set(state.round2Selections.map((selection) => selection.submissionId));
+  return state.submissions.filter((submission) => round2SubmissionIds.has(submission.id));
+}
+
+function getVisibleAssignments() {
+  const visibleSubmissionIds = new Set(getVisibleSubmissions().map((submission) => submission.id));
+  return getActiveAssignments().filter((assignment) => visibleSubmissionIds.has(assignment.submissionId));
 }
 
 function getReviewsForSubmission(submissionId) {
-  return state.reviews.filter((entry) => entry.submissionId === submissionId);
+  return getActiveReviews().filter((entry) => entry.submissionId === submissionId);
 }
 
 function getAssignmentsForReviewer(reviewerId) {
-  return state.assignments.filter((entry) => entry.reviewerId === reviewerId);
+  if (!IS_ROUND2_PAGE) {
+    return getActiveAssignments().filter((entry) => entry.reviewerId === reviewerId);
+  }
+
+  const visibleSubmissionIds = new Set(getVisibleSubmissions().map((submission) => submission.id));
+  return getActiveAssignments().filter((entry) =>
+    entry.reviewerId === reviewerId && visibleSubmissionIds.has(entry.submissionId)
+  );
+}
+
+function getActiveAssignments() {
+  return IS_ROUND2_PAGE ? state.round2Assignments : state.assignments;
+}
+
+function getActiveReviews() {
+  return IS_ROUND2_PAGE ? state.round2Reviews : state.reviews;
 }
 
 function findReviewer(reviewerId) {
