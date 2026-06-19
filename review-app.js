@@ -119,6 +119,8 @@ const VE_STAFF_RANKING_CSV_COLUMNS = [
   ["Reviewer comments", "reviewerComments"]
 ];
 
+const ROUND2_REVIEW_COMMENTS_CSV_COLUMN = ["Reviewer comments (JSON)", "reviewerCommentsJson"];
+
 const elements = {
   submissionCount: document.querySelector("#submission-count"),
   reviewerCount: document.querySelector("#reviewer-count"),
@@ -527,8 +529,11 @@ function getVeStaffRankedSubmissions() {
 }
 
 function exportTeacherRankingsCsv() {
+  const columns = IS_ROUND2_PAGE
+    ? [...TEACHER_RANKING_CSV_COLUMNS, ROUND2_REVIEW_COMMENTS_CSV_COLUMN]
+    : TEACHER_RANKING_CSV_COLUMNS;
   const rows = [
-    TEACHER_RANKING_CSV_COLUMNS.map(([label]) => label),
+    columns.map(([label]) => label),
     ...getTeacherRankedSubmissions().map((entry, index) => {
       const row = {
         ...entry.submission,
@@ -537,9 +542,10 @@ function exportTeacherRankingsCsv() {
         reviewCount: entry.metrics.reviewCount,
         averageScore: entry.metrics.averageScore ? entry.metrics.averageScore.toFixed(1) : "",
         recommendationSummary: entry.metrics.recommendationSummary,
-        status: statusText(entry.metrics)
+        status: statusText(entry.metrics),
+        reviewerCommentsJson: formatReviewerCommentsJson(entry.submission.id)
       };
-      return TEACHER_RANKING_CSV_COLUMNS.map(([, fieldName]) => row[fieldName] ?? "");
+      return columns.map(([, fieldName]) => row[fieldName] ?? "");
     })
   ];
   const csv = rows.map((row) => row.map(formatCsvValue).join(",")).join("\r\n");
@@ -553,8 +559,11 @@ function exportTeacherRankingsCsv() {
 }
 
 function exportVeStaffRankingsCsv() {
+  const columns = IS_ROUND2_PAGE
+    ? [...VE_STAFF_RANKING_CSV_COLUMNS, ROUND2_REVIEW_COMMENTS_CSV_COLUMN]
+    : VE_STAFF_RANKING_CSV_COLUMNS;
   const rows = [
-    VE_STAFF_RANKING_CSV_COLUMNS.map(([label]) => label),
+    columns.map(([label]) => label),
     ...getVeStaffRankedSubmissions().map((entry, index) => {
       const row = {
         ...entry.submission,
@@ -564,9 +573,10 @@ function exportVeStaffRankingsCsv() {
         averageScore: entry.metrics.averageScore ? entry.metrics.averageScore.toFixed(1) : "",
         recommendationSummary: entry.metrics.recommendationSummary,
         status: statusText(entry.metrics),
-        reviewerComments: formatReviewerComments(entry.submission.id)
+        reviewerComments: formatReviewerComments(entry.submission.id),
+        reviewerCommentsJson: formatReviewerCommentsJson(entry.submission.id)
       };
-      return VE_STAFF_RANKING_CSV_COLUMNS.map(([, fieldName]) => row[fieldName] ?? "");
+      return columns.map(([, fieldName]) => row[fieldName] ?? "");
     })
   ];
   const csv = rows.map((row) => row.map(formatCsvValue).join(",")).join("\r\n");
@@ -583,6 +593,15 @@ function formatReviewerComments(submissionId) {
   return getReviewsForSubmission(submissionId)
     .map((review, index) => `Reviewer ${index + 1}: ${review.comments || "-"}`)
     .join("; ");
+}
+
+function formatReviewerCommentsJson(submissionId) {
+  return JSON.stringify(getReviewsForSubmission(submissionId).map((review, index) => ({
+    reviewer: findReviewer(review.reviewerId)?.name || `Reviewer ${index + 1}`,
+    scores: review.scores || {},
+    totalScore: review.totalScore || 0,
+    comments: review.comments || ""
+  })));
 }
 
 function formatCsvValue(value) {
